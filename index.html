@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,40 +12,40 @@
 *{box-sizing:border-box}
 
 body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(135deg,#e6f0ff,#f5f7fa);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:30px 15px;
+margin:0;
+font-family:'Inter',sans-serif;
+background:linear-gradient(135deg,#e6f0ff,#f5f7fa);
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:30px 15px;
 }
 
 .container{
-  width:100%;
-  max-width:650px;
+width:100%;
+max-width:650px;
 }
 
 .ticket{
-  position:relative;
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:10px;
-  padding:15px;
-  margin-bottom:15px;
-  border-radius:18px;
-  backdrop-filter:blur(14px);
-  background:rgba(255,255,255,0.6);
-  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+position:relative;
+display:flex;
+flex-wrap:wrap;
+align-items:center;
+gap:10px;
+padding:15px;
+margin-bottom:15px;
+border-radius:18px;
+backdrop-filter:blur(14px);
+background:rgba(255,255,255,0.6);
+box-shadow:0 8px 25px rgba(0,0,0,0.08);
 }
 
 .ticket input{
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  font-family:inherit;
-  outline:none;
+padding:10px;
+border-radius:10px;
+border:1px solid #ddd;
+font-family:inherit;
+outline:none;
 }
 
 .number{flex:1}
@@ -52,93 +53,92 @@ body{
 .alarm{width:95px}
 
 .time{
-  min-width:75px;
-  text-align:center;
-  font-weight:600;
-  background:rgba(93,141,189,0.15);
-  padding:10px;
-  border-radius:12px;
+min-width:75px;
+text-align:center;
+font-weight:600;
+background:rgba(93,141,189,0.15);
+padding:10px;
+border-radius:12px;
 }
 
 .start{
-  width:45px;
-  height:45px;
-  border-radius:50%;
-  border:none;
-  cursor:pointer;
-  background:#28c76f;
-  flex-shrink:0;
-  transition:0.15s ease;
-  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+width:45px;
+height:45px;
+border-radius:50%;
+border:none;
+cursor:pointer;
+background:#28c76f;
+flex-shrink:0;
+transition:0.15s ease;
+box-shadow:0 4px 12px rgba(0,0,0,0.15);
 }
 
 .start.running{
-  transform:scale(0.9);
-  box-shadow:inset 0 4px 8px rgba(0,0,0,0.35);
+transform:scale(0.9);
+box-shadow:inset 0 4px 8px rgba(0,0,0,0.35);
 }
 
 .start.alerting{
-  background:#ea5455;
+background:#ea5455;
 }
 
 .deleteBtn{
-  position:absolute;
-  top:0;
-  right:0;
-  width:14px;
-  height:14px;
-  border-radius:50%;
-  background:#ea5455;
-  border:none;
-  color:white;
-  font-size:9px;
-  font-weight:bold;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+position:absolute;
+top:0;
+right:0;
+width:14px;
+height:14px;
+border-radius:50%;
+background:#ea5455;
+border:none;
+color:white;
+font-size:9px;
+font-weight:bold;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
 }
 
 .alert{
-  display:none;
-  font-size:14px;
-  color:#ea5455;
-  font-weight:600;
+display:none;
+font-size:14px;
+color:#ea5455;
+font-weight:600;
 }
 
 .controls{
-  display:flex;
-  gap:15px;
-  margin-top:15px;
+display:flex;
+gap:15px;
+margin-top:15px;
 }
 
 .circleBtn{
-  width:50px;
-  height:50px;
-  border-radius:50%;
-  border:none;
-  cursor:pointer;
-  font-size:22px;
-  color:white;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow:0 6px 15px rgba(0,0,0,0.15);
+width:50px;
+height:50px;
+border-radius:50%;
+border:none;
+cursor:pointer;
+font-size:22px;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+box-shadow:0 6px 15px rgba(0,0,0,0.15);
 }
 
 .addBtn{ background:#5d8dbd; }
-
 </style>
 </head>
 
 <body>
 
 <div class="container">
-  <div id="tickets"></div>
+<div id="tickets"></div>
 
-  <div class="controls">
-    <button class="circleBtn addBtn" onclick="addTicket()">+</button>
-  </div>
+<div class="controls">
+<button class="circleBtn addBtn" onclick="addTicket()">+</button>
+</div>
 </div>
 
 <script>
@@ -146,178 +146,216 @@ body{
 let audio = new Audio("alerta.mp3");
 audio.loop = true;
 
-/* solicitar permiso de notificaciones */
-if (Notification.permission !== "granted") {
-  Notification.requestPermission();
+let audioEnabled=false;
+
+/* habilitar audio y notificaciones con primer click */
+document.addEventListener("click",()=>{
+
+if(!audioEnabled){
+
+audio.play().then(()=>{
+audio.pause();
+audio.currentTime=0;
+audioEnabled=true;
+}).catch(()=>{});
+
+if(Notification.permission!=="granted"){
+Notification.requestPermission();
 }
 
+}
+
+},{once:true});
+
 function sendNotification(ticket){
-  if(Notification.permission === "granted"){
-    new Notification("Ticket pendiente",{
-      body:"Actualizar ticket: " + ticket,
-      icon:"https://cdn-icons-png.flaticon.com/512/1827/1827392.png"
-    });
-  }
+
+if(Notification.permission==="granted"){
+
+new Notification("Ticket pendiente",{
+body:"Actualizar ticket: "+ticket,
+requireInteraction:true
+});
+
+}
+
 }
 
 function saveData(){
-  const data=[];
-  document.querySelectorAll(".ticket").forEach(t=>{
-    const number=t.querySelector(".number").value;
-    const minutes=t.querySelector(".minutes").value;
-    const alarm=t.querySelector(".alarm").value;
 
-    if(number || minutes || alarm){
-      data.push({number,minutes,alarm});
-    }
-  });
-  localStorage.setItem("ticketsData",JSON.stringify(data));
+const data=[];
+
+document.querySelectorAll(".ticket").forEach(t=>{
+
+const number=t.querySelector(".number").value;
+const minutes=t.querySelector(".minutes").value;
+const alarm=t.querySelector(".alarm").value;
+
+if(number||minutes||alarm){
+data.push({number,minutes,alarm});
+}
+
+});
+
+localStorage.setItem("ticketsData",JSON.stringify(data));
 }
 
 function loadData(){
-  const data=JSON.parse(localStorage.getItem("ticketsData"));
-  if(data){
-    data.forEach(d=>addTicket(d.number,d.minutes,d.alarm));
-  }
+
+const data=JSON.parse(localStorage.getItem("ticketsData"));
+
+if(data){
+data.forEach(d=>addTicket(d.number,d.minutes,d.alarm));
+}
+
 }
 
 function addTicket(number="",minutes="",alarm=""){
 
-  const container=document.getElementById("tickets");
+const container=document.getElementById("tickets");
 
-  const div=document.createElement("div");
-  div.className="ticket";
+const div=document.createElement("div");
+div.className="ticket";
 
-  div.innerHTML=`
-    <button class="deleteBtn">×</button>
-    <input type="text" class="number" placeholder="N° Ticket" value="${number}">
-    <input type="number" class="minutes" placeholder="Min" min="1" value="${minutes}">
-    <div class="time">00:00</div>
-    <button class="start"></button>
-    <input type="time" class="alarm" value="${alarm}">
-    <div class="alert">Actualizar Ticket</div>
-  `;
+div.innerHTML=`
+<button class="deleteBtn">×</button>
+<input type="text" class="number" placeholder="N° Ticket" value="${number}">
+<input type="number" class="minutes" placeholder="Min" min="1" value="${minutes}">
+<div class="time">00:00</div>
+<button class="start"></button>
+<input type="time" class="alarm" value="${alarm}">
+<div class="alert">Actualizar Ticket</div>
+`;
 
-  container.appendChild(div);
+container.appendChild(div);
 
-  const deleteBtn=div.querySelector(".deleteBtn");
-  const btn=div.querySelector(".start");
-  const timeDisplay=div.querySelector(".time");
-  const alertMsg=div.querySelector(".alert");
-  const minutesInput=div.querySelector(".minutes");
-  const alarmInput=div.querySelector(".alarm");
-  const numberInput=div.querySelector(".number");
+const deleteBtn=div.querySelector(".deleteBtn");
+const btn=div.querySelector(".start");
+const timeDisplay=div.querySelector(".time");
+const alertMsg=div.querySelector(".alert");
+const minutesInput=div.querySelector(".minutes");
+const alarmInput=div.querySelector(".alarm");
+const numberInput=div.querySelector(".number");
 
-  numberInput.oninput=saveData;
-  minutesInput.oninput=saveData;
-  alarmInput.oninput=saveData;
+numberInput.oninput=saveData;
+minutesInput.oninput=saveData;
+alarmInput.oninput=saveData;
 
-  let interval=null;
-  let notifyInterval=null;
-  let endTime=0;
-  let running=false;
+let interval=null;
+let notifyInterval=null;
+let endTime=0;
+let running=false;
 
-  deleteBtn.onclick=function(){
-    if(interval) clearInterval(interval);
-    if(notifyInterval) clearInterval(notifyInterval);
-    audio.pause();
-    audio.currentTime=0;
-    div.remove();
-    saveData();
-  };
+deleteBtn.onclick=function(){
 
-  btn.onclick=function(){
+if(interval) clearInterval(interval);
+if(notifyInterval) clearInterval(notifyInterval);
 
-    if(!running){
+audio.pause();
+audio.currentTime=0;
 
-      let minutes=parseInt(minutesInput.value||0);
+div.remove();
 
-      if(minutes>0){
-        endTime = Date.now() + minutes*60000;
-      }
-      else if(alarmInput.value){
+saveData();
+};
 
-        const now = new Date();
-        const parts = alarmInput.value.split(":");
+btn.onclick=function(){
 
-        const target = new Date();
-        target.setHours(parseInt(parts[0]));
-        target.setMinutes(parseInt(parts[1]));
-        target.setSeconds(0);
+if(!running){
 
-        if(target <= now){
-          target.setDate(target.getDate()+1);
-        }
+let minutes=parseInt(minutesInput.value||0);
 
-        endTime = target.getTime();
-      }
-      else{
-        return;
-      }
+if(minutes>0){
 
-      running=true;
-      btn.classList.add("running");
+endTime=Date.now()+minutes*60000;
 
-      interval=setInterval(()=>{
+}
 
-        const remaining=Math.floor((endTime-Date.now())/1000);
+else if(alarmInput.value){
 
-        if(remaining<=0){
+const now=new Date();
+const parts=alarmInput.value.split(":");
 
-          clearInterval(interval);
+const target=new Date();
+target.setHours(parseInt(parts[0]));
+target.setMinutes(parseInt(parts[1]));
+target.setSeconds(0);
 
-          timeDisplay.textContent="00:00";
+if(target<=now){
+target.setDate(target.getDate()+1);
+}
 
-          btn.classList.remove("running");
-          btn.classList.add("alerting");
+endTime=target.getTime();
 
-          alertMsg.style.display="block";
+}
+else{
+return;
+}
 
-          audio.play();
+running=true;
 
-          sendNotification(numberInput.value || "Sin número");
+btn.classList.add("running");
 
-          notifyInterval=setInterval(()=>{
-            sendNotification(numberInput.value || "Sin número");
-          },5000);
+interval=setInterval(()=>{
 
-          running=true;
+const remaining=Math.floor((endTime-Date.now())/1000);
 
-          return;
-        }
+if(remaining<=0){
 
-        let m=Math.floor(remaining/60);
-        let s=remaining%60;
+clearInterval(interval);
 
-        timeDisplay.textContent=
-        String(m).padStart(2,'0')+":"+
-        String(s).padStart(2,'0');
+timeDisplay.textContent="00:00";
 
-      },1000);
+btn.classList.remove("running");
+btn.classList.add("alerting");
 
-    }
-    else{
+alertMsg.style.display="block";
 
-      running=false;
+audio.play();
 
-      clearInterval(interval);
-      clearInterval(notifyInterval);
+sendNotification(numberInput.value||"Ticket");
 
-      audio.pause();
-      audio.currentTime=0;
+notifyInterval=setInterval(()=>{
+sendNotification(numberInput.value||"Ticket");
+},5000);
 
-      alertMsg.style.display="none";
+running=true;
 
-      btn.classList.remove("running","alerting");
+return;
+}
 
-      endTime=0;
+let m=Math.floor(remaining/60);
+let s=remaining%60;
 
-      timeDisplay.textContent="00:00";
-    }
+timeDisplay.textContent=
+String(m).padStart(2,'0')+":"+
+String(s).padStart(2,'0');
 
-  };
+},1000);
 
-  saveData();
+}
+
+else{
+
+running=false;
+
+clearInterval(interval);
+clearInterval(notifyInterval);
+
+audio.pause();
+audio.currentTime=0;
+
+alertMsg.style.display="none";
+
+btn.classList.remove("running","alerting");
+
+endTime=0;
+
+timeDisplay.textContent="00:00";
+}
+
+};
+
+saveData();
 }
 
 loadData();
@@ -326,3 +364,4 @@ loadData();
 
 </body>
 </html>
+```
