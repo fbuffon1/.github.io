@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Tickets</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg,#e6f0ff,#f5f7fa);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:30px 15px;
+}
+
+.container{
+  width:100%;
+  max-width:650px;
+}
+
+.ticket{
+  position:relative;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:18px;
+  backdrop-filter:blur(14px);
+  background:rgba(255,255,255,0.6);
+  box-shadow:0 8px 25px rgba(0,0,0,0.08);
+}
+
+.ticket input{
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  font-family:inherit;
+  outline:none;
+}
+
+.number{flex:1}
+.minutes{width:70px}
+.alarm{width:95px}
+
+.time{
+  min-width:75px;
+  text-align:center;
+  font-weight:600;
+  background:rgba(93,141,189,0.15);
+  padding:10px;
+  border-radius:12px;
+}
+
+.start{
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  border:none;
+  cursor:pointer;
+  background:#28c76f;
+  flex-shrink:0;
+  transition:0.15s ease;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+
+.start.running{
+  transform:scale(0.9);
+  box-shadow:inset 0 4px 8px rgba(0,0,0,0.35);
+}
+
+.start.alerting{
+  background:#ea5455;
+}
+
+.deleteBtn{
+  position:absolute;
+  top:0;
+  right:0;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#ea5455;
+  border:none;
+  color:white;
+  font-size:9px;
+  font-weight:bold;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.alert{
+  display:none;
+  font-size:14px;
+  color:#ea5455;
+  font-weight:600;
+}
+
+.controls{
+  display:flex;
+  gap:15px;
+  margin-top:15px;
+}
+
+.circleBtn{
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  border:none;
+  cursor:pointer;
+  font-size:22px;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 15px rgba(0,0,0,0.15);
+}
+
+.addBtn{ background:#5d8dbd; }
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div id="tickets"></div>
+
+  <div class="controls">
+    <button class="circleBtn addBtn" onclick="addTicket()">+</button>
+  </div>
+</div>
+
+<script>
+
+let audio = new Audio("alerta.mp3");
+audio.loop = true;
+
+/* solicitar permiso de notificaciones */
+if (Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+function sendNotification(ticket){
+  if(Notification.permission === "granted"){
+    new Notification("Ticket pendiente",{
+      body:"Actualizar ticket: " + ticket,
+      icon:"https://cdn-icons-png.flaticon.com/512/1827/1827392.png"
+    });
+  }
+}
+
+function saveData(){
+  const data=[];
+  document.querySelectorAll(".ticket").forEach(t=>{
+    const number=t.querySelector(".number").value;
+    const minutes=t.querySelector(".minutes").value;
+    const alarm=t.querySelector(".alarm").value;
+
+    if(number || minutes || alarm){
+      data.push({number,minutes,alarm});
+    }
+  });
+  localStorage.setItem("ticketsData",JSON.stringify(data));
+}
+
+function loadData(){
+  const data=JSON.parse(localStorage.getItem("ticketsData"));
+  if(data){
+    data.forEach(d=>addTicket(d.number,d.minutes,d.alarm));
+  }
+}
+
+function addTicket(number="",minutes="",alarm=""){
+
+  const container=document.getElementById("tickets");
+
+  const div=document.createElement("div");
+  div.className="ticket";
+
+  div.innerHTML=`
+    <button class="deleteBtn">×</button>
+    <input type="text" class="number" placeholder="N° Ticket" value="${number}">
+    <input type="number" class="minutes" placeholder="Min" min="1" value="${minutes}">
+    <div class="time">00:00</div>
+    <button class="start"></button>
+    <input type="time" class="alarm" value="${alarm}">
+    <div class="alert">Actualizar Ticket</div>
+  `;
+
+  container.appendChild(div);
+
+  const deleteBtn=div.querySelector(".deleteBtn");
+  const btn=div.querySelector(".start");
+  const timeDisplay=div.querySelector(".time");
+  const alertMsg=div.querySelector(".alert");
+  const minutesInput=div.querySelector(".minutes");
+  const alarmInput=div.querySelector(".alarm");
+  const numberInput=div.querySelector(".number");
+
+  numberInput.oninput=saveData;
+  minutesInput.oninput=saveData;
+  alarmInput.oninput=saveData;
+
+  let interval=null;
+  let notifyInterval=null;
+  let endTime=0;
+  let running=false;
+
+  deleteBtn.onclick=function(){
+    if(interval) clearInterval(interval);
+    if(notifyInterval) clearInterval(notifyInterval);
+    audio.pause();
+    audio.currentTime=0;
+    div.remove();
+    saveData();
+  };
+
+  btn.onclick=function(){
+
+    if(!running){
+
+      let minutes=parseInt(minutesInput.value||0);
+
+      if(minutes>0){
+        endTime = Date.now() + minutes*60000;
+      }
+      else if(alarmInput.value){
+
+        const now = new Date();
+        const parts = alarmInput.value.split(":");
+
+        const target = new Date();
+        target.setHours(parseInt(parts[0]));
+        target.setMinutes(parseInt(parts[1]));
+        target.setSeconds(0);
+
+        if(target <= now){
+          target.setDate(target.getDate()+1);
+        }
+
+        endTime = target.getTime();
+      }
+      else{
+        return;
+      }
+
+      running=true;
+      btn.classList.add("running");
+
+      interval=setInterval(()=>{
+
+        const remaining=Math.floor((endTime-Date.now())/1000);
+
+        if(remaining<=0){
+
+          clearInterval(interval);
+
+          timeDisplay.textContent="00:00";
+
+          btn.classList.remove("running");
+          btn.classList.add("alerting");
+
+          alertMsg.style.display="block";
+
+          audio.play();
+
+          sendNotification(numberInput.value || "Sin número");
+
+          notifyInterval=setInterval(()=>{
+            sendNotification(numberInput.value || "Sin número");
+          },5000);
+
+          running=true;
+
+          return;
+        }
+
+        let m=Math.floor(remaining/60);
+        let s=remaining%60;
+
+        timeDisplay.textContent=
+        String(m).padStart(2,'0')+":"+
+        String(s).padStart(2,'0');
+
+      },1000);
+
+    }
+    else{
+
+      running=false;
+
+      clearInterval(interval);
+      clearInterval(notifyInterval);
+
+      audio.pause();
+      audio.currentTime=0;
+
+      alertMsg.style.display="none";
+
+      btn.classList.remove("running","alerting");
+
+      endTime=0;
+
+      timeDisplay.textContent="00:00";
+    }
+
+  };
+
+  saveData();
+}
+
+loadData();
+
+</script>
+
+</body>
+</html>
