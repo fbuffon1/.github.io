@@ -313,9 +313,10 @@ audio.play();
 
 sendNotification(numberInput.value||"Ticket");
 
+/* Tiempo de notificaciones*/  
 notifyInterval=setInterval(()=>{
 sendNotification(numberInput.value||"Ticket");
-},15000);
+},35000);
 
 running=true;
 
