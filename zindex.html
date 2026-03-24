@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Aprender PRO</title>
+
+<style>
+body {
+    margin:0;
+    font-family:'Segoe UI';
+    background:#7EC0D6;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.add-btn{
+    position:absolute;
+    right:20px;
+    width:55px;height:55px;
+    border-radius:50%;
+    border:none;
+    color:white;
+    cursor:pointer;
+}
+
+.btn-add{top:20px;background:#1CBF73;}
+.btn-admin{top:90px;background:#555;}
+.btn-wrong{top:160px;background:#E74C3C;}
+.btn-sync{top:230px;background:#3498DB;}
+
+.card{
+    width:420px;
+    background:#F5F5F5;
+    border-radius:20px;
+    padding:20px;
+}
+
+.word{font-size:26px;}
+
+.message{
+    display:none;
+    font-weight:bold;
+    margin:10px 0;
+}
+
+.correct-msg{color:#1CBF73;}
+.wrong-msg{color:red;}
+
+.options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.btn{
+    padding:14px;
+    border-radius:10px;
+    border:2px solid #ccc;
+    cursor:pointer;
+    transition: all 0.1s ease;
+}
+
+.btn:active{
+    transform: scale(0.95);
+}
+
+.selected{
+    transform: scale(0.95);
+}
+
+.correct{
+    background:#DFF5EA;
+    border-color:#1CBF73;
+}
+
+.wrong{
+    background:#FDE2E2;
+    border-color:red;
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.5);
+    justify-content:center;
+    align-items:center;
+}
+
+.modal-content{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width:300px;
+    position:relative;
+}
+
+.close{
+    position:absolute;
+    right:10px;
+    top:10px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<button class="add-btn btn-add" onclick="openModal()">+</button>
+<button class="add-btn btn-admin" onclick="openAdmin()">📋</button>
+<button class="add-btn btn-wrong" onclick="openWrong()">📉</button>
+<button class="add-btn btn-sync" onclick="syncData()">🔄</button>
+
+<input type="file" id="fileInput" style="display:none">
+
+<div class="card">
+    <div id="word" class="word"></div>
+    <div id="message" class="message"></div>
+    <div id="options" class="options"></div>
+</div>
+
+<!-- MODALES -->
+<div class="modal" id="modal">
+<div class="modal-content">
+<span class="close" onclick="closeModal('modal')">✖</span>
+<h3>Nueva palabra</h3>
+<input id="eng" placeholder="Inglés"><br>
+<input id="esp" placeholder="Español"><br>
+<button onclick="saveWord()">Guardar</button>
+</div>
+</div>
+
+<div class="modal" id="adminModal">
+<div class="modal-content">
+<span class="close" onclick="closeModal('adminModal')">✖</span>
+<h3>Administrar</h3>
+<div id="wordList"></div>
+</div>
+</div>
+
+<div class="modal" id="wrongModal">
+<div class="modal-content">
+<span class="close" onclick="closeModal('wrongModal')">✖</span>
+<h3>Falladas</h3>
+<div id="wrongList"></div>
+</div>
+</div>
+
+<script>
+let words = JSON.parse(localStorage.getItem("words")) || [
+ {eng:"tree", correct:"Árbol", options:["Árbol","Hoja","Raíz","Tierra"]}
+];
+
+let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
+
+let currentQuestion=null;
+let locked=false;
+
+/* PREGUNTA */
+function loadQuestion(){
+    locked=false;
+
+    let msg=document.getElementById("message");
+    msg.style.display="none";
+    msg.innerText="";
+
+    let useWrong=wrongWords.length>0 && Math.random()<0.7;
+    let pool=useWrong ? wrongWords.map(w=>w.data) : words;
+
+    currentQuestion=pool[Math.floor(Math.random()*pool.length)];
+
+    document.getElementById("word").innerText=currentQuestion.eng;
+
+    let container=document.getElementById("options");
+    container.innerHTML="";
+
+    let shuffled=[...currentQuestion.options].sort(()=>Math.random()-0.5);
+
+    shuffled.forEach(opt=>{
+        let btn=document.createElement("button");
+        btn.className="btn";
+        btn.innerText=opt;
+
+        btn.onclick=()=>{
+            if(locked) return;
+            locked=true;
+            btn.classList.add("selected");
+            check(btn,opt===currentQuestion.correct);
+        };
+
+        container.appendChild(btn);
+    });
+}
+
+/* VALIDACION */
+function check(btn,correct){
+    let msg=document.getElementById("message");
+    let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
+
+    if(correct){
+        btn.classList.add("correct");
+
+        msg.innerText="¡Increíble!";
+        msg.className="message correct-msg";
+        msg.style.display="block";
+
+        if(item){
+            item.hits++;
+            if(item.hits>=5){
+                wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+            }
+        }
+
+        localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
+        setTimeout(loadQuestion,1000);
+
+    }else{
+        btn.classList.add("wrong");
+
+        msg.innerText="Incorrecto";
+        msg.className="message wrong-msg";
+        msg.style.display="block";
+
+        if(item){
+            item.hits=0;
+        }else{
+            wrongWords.push({data:currentQuestion,hits:0});
+        }
+
+        localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
+        setTimeout(loadQuestion,3000);
+    }
+}
+
+/* CRUD */
+function saveWord(){
+    let eng=document.getElementById("eng").value.trim().toLowerCase();
+    let esp=document.getElementById("esp").value.trim();
+
+    if(!eng||!esp) return alert("Completa");
+    if(words.some(w=>w.eng===eng)) return alert("Ya existe");
+
+    words.push({eng,correct:esp,options:[esp,"Opción1","Opción2","Opción3"]});
+
+    localStorage.setItem("words",JSON.stringify(words));
+
+    document.getElementById("eng").value="";
+    document.getElementById("esp").value="";
+
+    closeModal("modal");
+    loadQuestion();
+}
+
+/* ADMIN */
+function openAdmin(){
+    document.getElementById("adminModal").style.display="flex";
+    renderList();
+}
+
+function renderList(){
+    let c=document.getElementById("wordList");
+    c.innerHTML="";
+
+    words.forEach((w,i)=>{
+        c.innerHTML+=`
+        <b>${w.eng}</b> → ${w.correct}<br>
+        <button onclick="deleteWord(${i})">Eliminar</button>
+        <hr>`;
+    });
+}
+
+function deleteWord(i){
+    if(confirm("Eliminar?")){
+        words.splice(i,1);
+        localStorage.setItem("words",JSON.stringify(words));
+        renderList();
+    }
+}
+
+/* FALLADAS */
+function openWrong(){
+    document.getElementById("wrongModal").style.display="flex";
+    renderWrong();
+}
+
+function renderWrong(){
+    let c=document.getElementById("wrongList");
+    c.innerHTML="";
+
+    wrongWords.forEach(w=>{
+        c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
+    });
+}
+
+/* 🔥 BOTÓN ÚNICO SYNC */
+function syncData(){
+    let choice = confirm("Aceptar = Exportar\nCancelar = Importar");
+
+    if(choice){
+        // EXPORTAR
+        let data = {words, wrongWords};
+        let blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+        let url = URL.createObjectURL(blob);
+
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "palabras.json";
+        a.click();
+
+    }else{
+        // IMPORTAR
+        document.getElementById("fileInput").click();
+    }
+}
+
+document.getElementById("fileInput").addEventListener("change", function(e){
+    let file = e.target.files[0];
+    if(!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(event){
+        let data = JSON.parse(event.target.result);
+
+        words = data.words || [];
+        wrongWords = data.wrongWords || [];
+
+        localStorage.setItem("words", JSON.stringify(words));
+        localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+
+        loadQuestion();
+    };
+    reader.readAsText(file);
+});
+
+/* UI */
+function openModal(){document.getElementById("modal").style.display="flex";}
+function closeModal(id){document.getElementById(id).style.display="none";}
+
+loadQuestion();
+</script>
+
+</body>
+</html>
