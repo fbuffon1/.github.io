@@ -2,108 +2,151 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aprender PRO</title>
 
 <style>
-body {
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+body{
     margin:0;
-    font-family:'Segoe UI';
-    background:#7EC0D6;
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
+    color:white;
 }
 
+/* BOTONES LATERALES */
 .add-btn{
-    position:absolute;
-    right:20px;
-    width:55px;height:55px;
+    position:fixed;
+    right:15px;
+    width:50px;height:50px;
     border-radius:50%;
     border:none;
     color:white;
     cursor:pointer;
 }
+.btn-add{top:20px;background:#22c55e;}
+.btn-admin{top:80px;background:#334155;}
+.btn-wrong{top:140px;background:#ef4444;}
+.btn-sync{top:200px;background:#38bdf8;}
 
-.btn-add{top:20px;background:#1CBF73;}
-.btn-admin{top:90px;background:#555;}
-.btn-wrong{top:160px;background:#E74C3C;}
-.btn-sync{top:230px;background:#3498DB;}
-
+/* CARD PRINCIPAL */
 .card{
-    width:420px;
-    background:#F5F5F5;
+    width:90%;
+    max-width:420px;
+    background:#111827;
     border-radius:20px;
-    padding:20px;
+    padding:30px 20px;
+    text-align:center;
+    position:relative;
 }
 
-.word{font-size:26px;}
+/* PREGUNTA */
+.word{
+    font-size:30px;
+    font-weight:600;
+    margin-bottom:20px;
+}
 
+/* MENSAJE */
 .message{
     display:none;
-    font-weight:bold;
-    margin:10px 0;
+    margin:10px;
+    font-weight:600;
 }
+.correct-msg{color:#22c55e;}
+.wrong-msg{color:#ef4444;}
 
-.correct-msg{color:#1CBF73;}
-.wrong-msg{color:red;}
-
+/* OPCIONES MEJORADAS */
 .options{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:10px;
+    gap:12px;
+    margin-top:15px;
 }
 
 .btn{
     padding:14px;
-    border-radius:10px;
-    border:2px solid #ccc;
+    border-radius:12px;
+    border:none;
+    background:#1f2937;
+    color:white;
     cursor:pointer;
-    transition: all 0.1s ease;
+    font-size:14px;
+    transition:0.2s;
 }
 
-.btn:active{
-    transform: scale(0.95);
-}
-
-.selected{
-    transform: scale(0.95);
+.btn:hover{
+    background:#374151;
+    transform:scale(1.03);
 }
 
 .correct{
-    background:#DFF5EA;
-    border-color:#1CBF73;
+    background:#166534 !important;
 }
 
 .wrong{
-    background:#FDE2E2;
-    border-color:red;
+    background:#991b1b !important;
 }
 
+/* MODALES */
 .modal{
     display:none;
     position:fixed;
-    top:0;left:0;
     width:100%;height:100%;
-    background:rgba(0,0,0,0.5);
+    background:rgba(0,0,0,0.7);
     justify-content:center;
     align-items:center;
 }
 
 .modal-content{
-    background:white;
+    background:#111827;
     padding:20px;
-    border-radius:10px;
-    width:300px;
-    position:relative;
+    border-radius:12px;
+    width:90%;
+    max-width:320px;
 }
 
-.close{
-    position:absolute;
-    right:10px;
-    top:10px;
-    cursor:pointer;
+.modal input{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    background:#1f2937;
+    border:none;
+    color:white;
 }
+
+.modal button{
+    width:100%;
+    padding:10px;
+    margin-top:5px;
+    background:#22c55e;
+    border:none;
+    color:white;
+}
+
+.close{cursor:pointer;float:right;}
+
+/* SCROLL ADMIN */
+#wordList{
+    max-height:250px;
+    overflow-y:auto;
+}
+
+.admin-item{
+    background:#1f2937;
+    padding:8px;
+    margin-bottom:8px;
+    border-radius:8px;
+}
+
+.btn-delete{background:#ef4444;}
+.btn-edit{background:#38bdf8;}
+
 </style>
 </head>
 
@@ -112,14 +155,14 @@ body {
 <button class="add-btn btn-add" onclick="openModal()">+</button>
 <button class="add-btn btn-admin" onclick="openAdmin()">📋</button>
 <button class="add-btn btn-wrong" onclick="openWrong()">📉</button>
-<button class="add-btn btn-sync" onclick="syncData()">🔄</button>
+<button class="add-btn btn-sync" onclick="openSync()">🔄</button>
 
 <input type="file" id="fileInput" style="display:none">
 
 <div class="card">
-    <div id="word" class="word"></div>
-    <div id="message" class="message"></div>
-    <div id="options" class="options"></div>
+<div id="word" class="word"></div>
+<div id="message" class="message"></div>
+<div id="options" class="options"></div>
 </div>
 
 <!-- MODALES -->
@@ -127,8 +170,8 @@ body {
 <div class="modal-content">
 <span class="close" onclick="closeModal('modal')">✖</span>
 <h3>Nueva palabra</h3>
-<input id="eng" placeholder="Inglés"><br>
-<input id="esp" placeholder="Español"><br>
+<input id="eng" placeholder="Inglés">
+<input id="esp" placeholder="Español">
 <button onclick="saveWord()">Guardar</button>
 </div>
 </div>
@@ -149,194 +192,203 @@ body {
 </div>
 </div>
 
+<div class="modal" id="syncModal">
+<div class="modal-content">
+<span class="close" onclick="closeModal('syncModal')">✖</span>
+<h3>Sincronizar</h3>
+<button onclick="exportData()">Exportar</button>
+<button onclick="importData()">Importar</button>
+</div>
+</div>
+
 <script>
-let words = JSON.parse(localStorage.getItem("words")) || [
- {eng:"tree", correct:"Árbol", options:["Árbol","Hoja","Raíz","Tierra"]}
+let words=JSON.parse(localStorage.getItem("words"))||[
+{eng:"tree",correct:"Árbol",options:["Árbol","Hoja","Raíz","Tierra"]}
 ];
 
-let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
+let wrongWords=JSON.parse(localStorage.getItem("wrongWords"))||[];
 
 let currentQuestion=null;
+let lastQuestion=null;
 let locked=false;
 
-/* PREGUNTA */
+/* RANDOM INTELIGENTE */
+function getNextQuestion(){
+let pool=[];
+
+words.forEach(w=>{
+let isWrong=wrongWords.find(x=>x.data.eng===w.eng);
+let weight=isWrong ? 3 : 1; // más peso a falladas
+
+for(let i=0;i<weight;i++){
+pool.push(w);
+}
+});
+
+let next;
+do{
+next=pool[Math.floor(Math.random()*pool.length)];
+}while(lastQuestion && next.eng===lastQuestion.eng);
+
+return next;
+}
+
+/* CARGAR */
 function loadQuestion(){
-    locked=false;
+locked=false;
 
-    let msg=document.getElementById("message");
-    msg.style.display="none";
-    msg.innerText="";
+let msg=document.getElementById("message");
+msg.style.display="none";
 
-    let useWrong=wrongWords.length>0 && Math.random()<0.7;
-    let pool=useWrong ? wrongWords.map(w=>w.data) : words;
+currentQuestion=getNextQuestion();
+lastQuestion=currentQuestion;
 
-    currentQuestion=pool[Math.floor(Math.random()*pool.length)];
+document.getElementById("word").innerText=currentQuestion.eng;
 
-    document.getElementById("word").innerText=currentQuestion.eng;
+let container=document.getElementById("options");
+container.innerHTML="";
 
-    let container=document.getElementById("options");
-    container.innerHTML="";
+let shuffled=[...currentQuestion.options].sort(()=>Math.random()-0.5);
 
-    let shuffled=[...currentQuestion.options].sort(()=>Math.random()-0.5);
+shuffled.forEach(opt=>{
+let btn=document.createElement("button");
+btn.className="btn";
+btn.innerText=opt;
 
-    shuffled.forEach(opt=>{
-        let btn=document.createElement("button");
-        btn.className="btn";
-        btn.innerText=opt;
+btn.onclick=()=>{
+if(locked)return;
+locked=true;
+check(btn,opt===currentQuestion.correct);
+};
 
-        btn.onclick=()=>{
-            if(locked) return;
-            locked=true;
-            btn.classList.add("selected");
-            check(btn,opt===currentQuestion.correct);
-        };
-
-        container.appendChild(btn);
-    });
+container.appendChild(btn);
+});
 }
 
 /* VALIDACION */
 function check(btn,correct){
-    let msg=document.getElementById("message");
-    let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
+let msg=document.getElementById("message");
+let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
 
-    if(correct){
-        btn.classList.add("correct");
+if(correct){
+btn.classList.add("correct");
+msg.innerText="¡Bien!";
+msg.className="message correct-msg";
+msg.style.display="block";
 
-        msg.innerText="¡Increíble!";
-        msg.className="message correct-msg";
-        msg.style.display="block";
-
-        if(item){
-            item.hits++;
-            if(item.hits>=5){
-                wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
-            }
-        }
-
-        localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
-        setTimeout(loadQuestion,1000);
-
-    }else{
-        btn.classList.add("wrong");
-
-        msg.innerText="Incorrecto";
-        msg.className="message wrong-msg";
-        msg.style.display="block";
-
-        if(item){
-            item.hits=0;
-        }else{
-            wrongWords.push({data:currentQuestion,hits:0});
-        }
-
-        localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
-        setTimeout(loadQuestion,3000);
-    }
+if(item){
+item.hits++;
+if(item.hits>=5){
+wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+}
 }
 
-/* CRUD */
+}else{
+btn.classList.add("wrong");
+msg.innerText="Incorrecto";
+msg.className="message wrong-msg";
+msg.style.display="block";
+
+if(item){
+item.hits=0;
+}else{
+wrongWords.push({data:currentQuestion,hits:0});
+}
+}
+
+localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
+setTimeout(loadQuestion,1200);
+}
+
+/* RESTO IGUAL */
 function saveWord(){
-    let eng=document.getElementById("eng").value.trim().toLowerCase();
-    let esp=document.getElementById("esp").value.trim();
+let eng=document.getElementById("eng").value.trim().toLowerCase();
+let esp=document.getElementById("esp").value.trim();
 
-    if(!eng||!esp) return alert("Completa");
-    if(words.some(w=>w.eng===eng)) return alert("Ya existe");
+words.push({eng,correct:esp,options:[esp,"Opción1","Opción2","Opción3"]});
+localStorage.setItem("words",JSON.stringify(words));
 
-    words.push({eng,correct:esp,options:[esp,"Opción1","Opción2","Opción3"]});
-
-    localStorage.setItem("words",JSON.stringify(words));
-
-    document.getElementById("eng").value="";
-    document.getElementById("esp").value="";
-
-    closeModal("modal");
-    loadQuestion();
+closeModal("modal");
+loadQuestion();
 }
 
-/* ADMIN */
 function openAdmin(){
-    document.getElementById("adminModal").style.display="flex";
-    renderList();
+adminModal.style.display="flex";
+renderList();
 }
 
 function renderList(){
-    let c=document.getElementById("wordList");
-    c.innerHTML="";
+let c=document.getElementById("wordList");
+c.innerHTML="";
 
-    words.forEach((w,i)=>{
-        c.innerHTML+=`
-        <b>${w.eng}</b> → ${w.correct}<br>
-        <button onclick="deleteWord(${i})">Eliminar</button>
-        <hr>`;
-    });
+words.forEach((w,i)=>{
+c.innerHTML+=`
+<div class="admin-item">
+<b>${w.eng}</b> → ${w.correct}<br>
+<button class="btn-edit" onclick="editWord(${i})">Editar</button>
+<button class="btn-delete" onclick="deleteWord(${i})">Eliminar</button>
+</div>`;
+});
+}
+
+function editWord(i){
+let newEng=prompt("Editar Inglés:",words[i].eng);
+let newEsp=prompt("Editar Español:",words[i].correct);
+
+if(newEng && newEsp){
+words[i].eng=newEng.toLowerCase();
+words[i].correct=newEsp;
+words[i].options[0]=newEsp;
+
+localStorage.setItem("words",JSON.stringify(words));
+renderList();
+}
 }
 
 function deleteWord(i){
-    if(confirm("Eliminar?")){
-        words.splice(i,1);
-        localStorage.setItem("words",JSON.stringify(words));
-        renderList();
-    }
+words.splice(i,1);
+localStorage.setItem("words",JSON.stringify(words));
+renderList();
 }
 
-/* FALLADAS */
 function openWrong(){
-    document.getElementById("wrongModal").style.display="flex";
-    renderWrong();
-}
+wrongModal.style.display="flex";
+let c=document.getElementById("wrongList");
+c.innerHTML="";
 
-function renderWrong(){
-    let c=document.getElementById("wrongList");
-    c.innerHTML="";
-
-    wrongWords.forEach(w=>{
-        c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
-    });
-}
-
-/* 🔥 BOTÓN ÚNICO SYNC */
-function syncData(){
-    let choice = confirm("Aceptar = Exportar\nCancelar = Importar");
-
-    if(choice){
-        // EXPORTAR
-        let data = {words, wrongWords};
-        let blob = new Blob([JSON.stringify(data)], {type:"application/json"});
-        let url = URL.createObjectURL(blob);
-
-        let a = document.createElement("a");
-        a.href = url;
-        a.download = "palabras.json";
-        a.click();
-
-    }else{
-        // IMPORTAR
-        document.getElementById("fileInput").click();
-    }
-}
-
-document.getElementById("fileInput").addEventListener("change", function(e){
-    let file = e.target.files[0];
-    if(!file) return;
-
-    let reader = new FileReader();
-    reader.onload = function(event){
-        let data = JSON.parse(event.target.result);
-
-        words = data.words || [];
-        wrongWords = data.wrongWords || [];
-
-        localStorage.setItem("words", JSON.stringify(words));
-        localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
-
-        loadQuestion();
-    };
-    reader.readAsText(file);
+wrongWords.forEach(w=>{
+c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
 });
+}
 
-/* UI */
-function openModal(){document.getElementById("modal").style.display="flex";}
+function openSync(){syncModal.style.display="flex";}
+
+function exportData(){
+let data={words,wrongWords};
+let blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="palabras.json";
+a.click();
+}
+
+function importData(){fileInput.click();}
+
+fileInput.onchange=e=>{
+let file=e.target.files[0];
+let reader=new FileReader();
+reader.onload=()=>{
+let data=JSON.parse(reader.result);
+words=data.words||[];
+wrongWords=data.wrongWords||[];
+localStorage.setItem("words",JSON.stringify(words));
+localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
+loadQuestion();
+};
+reader.readAsText(file);
+};
+
+function openModal(){modal.style.display="flex";}
 function closeModal(id){document.getElementById(id).style.display="none";}
 
 loadQuestion();
