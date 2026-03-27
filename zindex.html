@@ -77,8 +77,20 @@ body{
     transform:scale(1.03);
 }
 
-.correct{background:#166534 !important;}
-.wrong{background:#991b1b !important;}
+.correct{
+    background:#166534 !important;
+    animation: flash 0.5s 2;
+}
+
+.wrong{
+    background:#991b1b !important;
+}
+
+@keyframes flash{
+    0%{opacity:1;}
+    50%{opacity:0.4;}
+    100%{opacity:1;}
+}
 
 .modal{
     display:none;
@@ -284,41 +296,52 @@ container.appendChild(btn);
 });
 }
 
+/* 🔥 CHECK MEJORADO */
 function check(btn,correct){
 let msg=document.getElementById("message");
 let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
+let allButtons = document.querySelectorAll(".btn");
 
 if(correct){
-btn.classList.add("correct");
-msg.innerText="¡Bien!";
-msg.className="message correct-msg";
-msg.style.display="block";
+    btn.classList.add("correct");
+    msg.innerText="¡Bien!";
+    msg.className="message correct-msg";
+    msg.style.display="block";
 
-if(item){
-item.hits++;
-if(item.hits>=5){
-wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
-}
-}
+    if(item){
+        item.hits++;
+        if(item.hits>=5){
+            wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+        }
+    }
 
 }else{
-btn.classList.add("wrong");
-msg.innerText="Incorrecto";
-msg.className="message wrong-msg";
-msg.style.display="block";
+    btn.classList.add("wrong");
 
-if(item){
-item.hits=0;
-}else{
-wrongWords.push({data:currentQuestion,hits:0});
-}
+    // mostrar correcta
+    allButtons.forEach(b=>{
+        if(b.innerText === currentQuestion.correct){
+            b.classList.add("correct");
+        }
+    });
+
+    msg.innerText="Incorrecto";
+    msg.className="message wrong-msg";
+    msg.style.display="block";
+
+    if(item){
+        item.hits=0;
+    }else{
+        wrongWords.push({data:currentQuestion,hits:0});
+    }
 }
 
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
-setTimeout(loadQuestion,1200);
+
+// esperar más para ver animación
+setTimeout(loadQuestion, 2000);
 }
 
-/* 🔥 AQUÍ ESTÁ LA MEJORA */
 function saveWord(){
 let eng=document.getElementById("eng").value.trim().toLowerCase();
 let esp=document.getElementById("esp").value.trim();
@@ -328,11 +351,8 @@ if(!eng || !esp) return;
 words.push({eng,correct:esp});
 localStorage.setItem("words",JSON.stringify(words));
 
-/* LIMPIAR CAMPOS */
 document.getElementById("eng").value="";
 document.getElementById("esp").value="";
-
-/* OPCIONAL: foco */
 document.getElementById("eng").focus();
 
 closeModal("modal");
