@@ -19,7 +19,6 @@ body{
     color:white;
 }
 
-/* BOTONES LATERALES */
 .add-btn{
     position:fixed;
     right:15px;
@@ -34,7 +33,6 @@ body{
 .btn-wrong{top:140px;background:#ef4444;}
 .btn-sync{top:200px;background:#38bdf8;}
 
-/* CARD PRINCIPAL */
 .card{
     width:90%;
     max-width:420px;
@@ -42,17 +40,14 @@ body{
     border-radius:20px;
     padding:30px 20px;
     text-align:center;
-    position:relative;
 }
 
-/* PREGUNTA */
 .word{
     font-size:30px;
     font-weight:600;
     margin-bottom:20px;
 }
 
-/* MENSAJE */
 .message{
     display:none;
     margin:10px;
@@ -61,12 +56,10 @@ body{
 .correct-msg{color:#22c55e;}
 .wrong-msg{color:#ef4444;}
 
-/* OPCIONES MEJORADAS */
 .options{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:12px;
-    margin-top:15px;
 }
 
 .btn{
@@ -76,7 +69,6 @@ body{
     background:#1f2937;
     color:white;
     cursor:pointer;
-    font-size:14px;
     transition:0.2s;
 }
 
@@ -85,15 +77,9 @@ body{
     transform:scale(1.03);
 }
 
-.correct{
-    background:#166534 !important;
-}
+.correct{background:#166534 !important;}
+.wrong{background:#991b1b !important;}
 
-.wrong{
-    background:#991b1b !important;
-}
-
-/* MODALES */
 .modal{
     display:none;
     position:fixed;
@@ -131,7 +117,6 @@ body{
 
 .close{cursor:pointer;float:right;}
 
-/* SCROLL ADMIN */
 #wordList{
     max-height:250px;
     overflow-y:auto;
@@ -146,7 +131,6 @@ body{
 
 .btn-delete{background:#ef4444;}
 .btn-edit{background:#38bdf8;}
-
 </style>
 </head>
 
@@ -202,23 +186,52 @@ body{
 </div>
 
 <script>
-let words=JSON.parse(localStorage.getItem("words"))||[
-{eng:"tree",correct:"Árbol",options:["Árbol","Hoja","Raíz","Tierra"]}
-];
-
-let wrongWords=JSON.parse(localStorage.getItem("wrongWords"))||[];
+let words = JSON.parse(localStorage.getItem("words")) || [];
+let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
 
 let currentQuestion=null;
 let lastQuestion=null;
 let locked=false;
 
+/* LIMPIAR FALLADAS FANTASMA */
+function cleanWrongWords(){
+    wrongWords = wrongWords.filter(w =>
+        words.some(real => real.eng === w.data.eng)
+    );
+    localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+}
+
+/* OPCIONES REALES */
+function generateOptions(correctWord){
+let options=[correctWord.correct];
+
+let others=words
+.filter(w=>w.eng!==correctWord.eng)
+.map(w=>w.correct)
+.sort(()=>Math.random()-0.5);
+
+for(let i=0;i<3 && i<others.length;i++){
+if(!options.includes(others[i])){
+options.push(others[i]);
+}
+}
+
+while(options.length<4){
+options.push("...");
+}
+
+return options.sort(()=>Math.random()-0.5);
+}
+
 /* RANDOM INTELIGENTE */
 function getNextQuestion(){
+if(words.length===0) return null;
+
 let pool=[];
 
 words.forEach(w=>{
 let isWrong=wrongWords.find(x=>x.data.eng===w.eng);
-let weight=isWrong ? 3 : 1; // más peso a falladas
+let weight=isWrong ? 3 : 1;
 
 for(let i=0;i<weight;i++){
 pool.push(w);
@@ -228,13 +241,21 @@ pool.push(w);
 let next;
 do{
 next=pool[Math.floor(Math.random()*pool.length)];
-}while(lastQuestion && next.eng===lastQuestion.eng);
+}while(lastQuestion && next.eng===lastQuestion.eng && pool.length>1);
 
 return next;
 }
 
-/* CARGAR */
+/* LOAD */
 function loadQuestion(){
+cleanWrongWords();
+
+if(words.length===0){
+document.getElementById("word").innerText="Agrega palabras";
+document.getElementById("options").innerHTML="";
+return;
+}
+
 locked=false;
 
 let msg=document.getElementById("message");
@@ -243,12 +264,14 @@ msg.style.display="none";
 currentQuestion=getNextQuestion();
 lastQuestion=currentQuestion;
 
+if(!currentQuestion) return;
+
 document.getElementById("word").innerText=currentQuestion.eng;
 
 let container=document.getElementById("options");
 container.innerHTML="";
 
-let shuffled=[...currentQuestion.options].sort(()=>Math.random()-0.5);
+let shuffled=generateOptions(currentQuestion);
 
 shuffled.forEach(opt=>{
 let btn=document.createElement("button");
@@ -265,7 +288,7 @@ container.appendChild(btn);
 });
 }
 
-/* VALIDACION */
+/* CHECK */
 function check(btn,correct){
 let msg=document.getElementById("message");
 let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
@@ -300,12 +323,12 @@ localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 setTimeout(loadQuestion,1200);
 }
 
-/* RESTO IGUAL */
+/* CRUD */
 function saveWord(){
 let eng=document.getElementById("eng").value.trim().toLowerCase();
 let esp=document.getElementById("esp").value.trim();
 
-words.push({eng,correct:esp,options:[esp,"Opción1","Opción2","Opción3"]});
+words.push({eng,correct:esp});
 localStorage.setItem("words",JSON.stringify(words));
 
 closeModal("modal");
@@ -338,7 +361,6 @@ let newEsp=prompt("Editar Español:",words[i].correct);
 if(newEng && newEsp){
 words[i].eng=newEng.toLowerCase();
 words[i].correct=newEsp;
-words[i].options[0]=newEsp;
 
 localStorage.setItem("words",JSON.stringify(words));
 renderList();
@@ -351,6 +373,7 @@ localStorage.setItem("words",JSON.stringify(words));
 renderList();
 }
 
+/* FALLADAS */
 function openWrong(){
 wrongModal.style.display="flex";
 let c=document.getElementById("wrongList");
@@ -361,6 +384,7 @@ c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
 });
 }
 
+/* SYNC */
 function openSync(){syncModal.style.display="flex";}
 
 function exportData(){
