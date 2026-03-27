@@ -193,7 +193,6 @@ let currentQuestion=null;
 let lastQuestion=null;
 let locked=false;
 
-/* LIMPIAR FALLADAS FANTASMA */
 function cleanWrongWords(){
     wrongWords = wrongWords.filter(w =>
         words.some(real => real.eng === w.data.eng)
@@ -201,7 +200,6 @@ function cleanWrongWords(){
     localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
 }
 
-/* OPCIONES REALES */
 function generateOptions(correctWord){
 let options=[correctWord.correct];
 
@@ -223,7 +221,6 @@ options.push("...");
 return options.sort(()=>Math.random()-0.5);
 }
 
-/* RANDOM INTELIGENTE */
 function getNextQuestion(){
 if(words.length===0) return null;
 
@@ -246,7 +243,6 @@ next=pool[Math.floor(Math.random()*pool.length)];
 return next;
 }
 
-/* LOAD */
 function loadQuestion(){
 cleanWrongWords();
 
@@ -288,7 +284,6 @@ container.appendChild(btn);
 });
 }
 
-/* CHECK */
 function check(btn,correct){
 let msg=document.getElementById("message");
 let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
@@ -323,13 +318,22 @@ localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 setTimeout(loadQuestion,1200);
 }
 
-/* CRUD */
+/* 🔥 AQUÍ ESTÁ LA MEJORA */
 function saveWord(){
 let eng=document.getElementById("eng").value.trim().toLowerCase();
 let esp=document.getElementById("esp").value.trim();
 
+if(!eng || !esp) return;
+
 words.push({eng,correct:esp});
 localStorage.setItem("words",JSON.stringify(words));
+
+/* LIMPIAR CAMPOS */
+document.getElementById("eng").value="";
+document.getElementById("esp").value="";
+
+/* OPCIONAL: foco */
+document.getElementById("eng").focus();
 
 closeModal("modal");
 loadQuestion();
@@ -373,7 +377,6 @@ localStorage.setItem("words",JSON.stringify(words));
 renderList();
 }
 
-/* FALLADAS */
 function openWrong(){
 wrongModal.style.display="flex";
 let c=document.getElementById("wrongList");
@@ -384,7 +387,6 @@ c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
 });
 }
 
-/* SYNC */
 function openSync(){syncModal.style.display="flex";}
 
 function exportData(){
