@@ -7,7 +7,6 @@
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
-
 body{
     margin:0;
     font-family:'Poppins',sans-serif;
@@ -32,6 +31,7 @@ body{
 .btn-admin{top:80px;background:#334155;}
 .btn-wrong{top:140px;background:#ef4444;}
 .btn-sync{top:200px;background:#38bdf8;}
+.btn-mode{top:260px;background:#f59e0b;} /* NUEVO */
 
 .card{
     width:90%;
@@ -153,6 +153,9 @@ body{
 <button class="add-btn btn-wrong" onclick="openWrong()">📉</button>
 <button class="add-btn btn-sync" onclick="openSync()">🔄</button>
 
+<!-- 🔁 NUEVO -->
+<button class="add-btn btn-mode" onclick="toggleMode()">🔁</button>
+
 <input type="file" id="fileInput" style="display:none">
 
 <div class="card">
@@ -161,7 +164,7 @@ body{
 <div id="options" class="options"></div>
 </div>
 
-<!-- MODALES -->
+<!-- MODALES (IGUAL) -->
 <div class="modal" id="modal">
 <div class="modal-content">
 <span class="close" onclick="closeModal('modal')">✖</span>
@@ -205,19 +208,30 @@ let currentQuestion=null;
 let lastQuestion=null;
 let locked=false;
 
+// 🔁 NUEVO
+let reverseMode=false;
+
+function toggleMode(){
+reverseMode=!reverseMode;
+loadQuestion();
+}
+
 function cleanWrongWords(){
-    wrongWords = wrongWords.filter(w =>
-        words.some(real => real.eng === w.data.eng)
-    );
-    localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+wrongWords = wrongWords.filter(w =>
+words.some(real => real.eng === w.data.eng)
+);
+localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
 }
 
 function generateOptions(correctWord){
-let options=[correctWord.correct];
+
+let correct = reverseMode ? correctWord.eng : correctWord.correct;
+
+let options=[correct];
 
 let others=words
 .filter(w=>w.eng!==correctWord.eng)
-.map(w=>w.correct)
+.map(w=> reverseMode ? w.eng : w.correct)
 .sort(()=>Math.random()-0.5);
 
 for(let i=0;i<3 && i<others.length;i++){
@@ -240,8 +254,7 @@ let pool=[];
 
 words.forEach(w=>{
 let isWrong=wrongWords.find(x=>x.data.eng===w.eng);
-let weight=isWrong ? 3 : 1;
-
+let weight=isWrong ? 5 : 1;
 for(let i=0;i<weight;i++){
 pool.push(w);
 }
@@ -272,9 +285,8 @@ msg.style.display="none";
 currentQuestion=getNextQuestion();
 lastQuestion=currentQuestion;
 
-if(!currentQuestion) return;
-
-document.getElementById("word").innerText=currentQuestion.eng;
+document.getElementById("word").innerText =
+reverseMode ? currentQuestion.correct : currentQuestion.eng;
 
 let container=document.getElementById("options");
 container.innerHTML="";
@@ -286,59 +298,56 @@ let btn=document.createElement("button");
 btn.className="btn";
 btn.innerText=opt;
 
-btn.onclick=()=>{
-if(locked)return;
-locked=true;
-check(btn,opt===currentQuestion.correct);
-};
+let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
+
+btn.onclick=()=>{if(locked)return; locked=true; check(btn,opt===correctValue);};
 
 container.appendChild(btn);
 });
 }
 
-/* 🔥 CHECK MEJORADO */
 function check(btn,correct){
 let msg=document.getElementById("message");
 let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
 let allButtons = document.querySelectorAll(".btn");
 
-if(correct){
-    btn.classList.add("correct");
-    msg.innerText="¡Bien!";
-    msg.className="message correct-msg";
-    msg.style.display="block";
+let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
 
-    if(item){
-        item.hits++;
-        if(item.hits>=5){
-            wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
-        }
-    }
+if(correct){
+btn.classList.add("correct");
+msg.innerText="¡Bien!";
+msg.className="message correct-msg";
+msg.style.display="block";
+
+if(item){
+item.hits++;
+if(item.hits>=5){
+wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+}
+}
 
 }else{
-    btn.classList.add("wrong");
+btn.classList.add("wrong");
 
-    // mostrar correcta
-    allButtons.forEach(b=>{
-        if(b.innerText === currentQuestion.correct){
-            b.classList.add("correct");
-        }
-    });
+allButtons.forEach(b=>{
+if(b.innerText === correctValue){
+b.classList.add("correct");
+}
+});
 
-    msg.innerText="Incorrecto";
-    msg.className="message wrong-msg";
-    msg.style.display="block";
+msg.innerText="Incorrecto";
+msg.className="message wrong-msg";
+msg.style.display="block";
 
-    if(item){
-        item.hits=0;
-    }else{
-        wrongWords.push({data:currentQuestion,hits:0});
-    }
+if(item){
+item.hits=0;
+}else{
+wrongWords.push({data:currentQuestion,hits:0});
+}
 }
 
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 
-// esperar más para ver animación
 setTimeout(loadQuestion, 2000);
 }
 
@@ -401,6 +410,8 @@ function openWrong(){
 wrongModal.style.display="flex";
 let c=document.getElementById("wrongList");
 c.innerHTML="";
+
+if(wrongWords.length===0){c.innerHTML="<i>No hay palabras falladas</i>"; return;}
 
 wrongWords.forEach(w=>{
 c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
