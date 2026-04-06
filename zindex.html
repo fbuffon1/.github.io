@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -205,10 +206,18 @@ let words = JSON.parse(localStorage.getItem("words")) || [];
 let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
 
 let currentQuestion=null;
-let lastQuestion=null;
 let locked=false;
 
-// 🔁 NUEVO
+// normales
+let shuffledWords = [];
+let currentIndex = 0;
+
+// 🔥 falladas CONTROL PERFECTO
+let shuffledWrong = [];
+let wrongIndex = 0;
+
+let normalCounter = 0;
+
 let reverseMode=false;
 
 function toggleMode(){
@@ -216,6 +225,7 @@ reverseMode=!reverseMode;
 loadQuestion();
 }
 
+// limpiar falladas inválidas
 function cleanWrongWords(){
 wrongWords = wrongWords.filter(w =>
 words.some(real => real.eng === w.data.eng)
@@ -223,6 +233,58 @@ words.some(real => real.eng === w.data.eng)
 localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
 }
 
+// normales random sin repetir
+function shuffleWords(){
+shuffledWords = [...words].sort(()=>Math.random()-0.5);
+currentIndex = 0;
+}
+
+// 🔥 shuffle falladas SOLO CUANDO EMPIEZA CICLO
+function shuffleWrong(){
+shuffledWrong = [...wrongWords].sort(()=>Math.random()-0.5);
+wrongIndex = 0;
+}
+
+// 🔥 lógica corregida SIN repetición
+function getNextQuestion(){
+if(words.length===0) return null;
+
+// cada 2 normales → 1 fallada
+if(normalCounter >= 2 && wrongWords.length > 0){
+
+// crear ciclo SOLO si está vacío
+if(shuffledWrong.length === 0){
+shuffleWrong();
+}
+
+// tomar siguiente
+let w = shuffledWrong[wrongIndex];
+wrongIndex++;
+
+// si terminó ciclo → reiniciar limpio
+if(wrongIndex >= shuffledWrong.length){
+shuffledWrong = [];
+wrongIndex = 0;
+}
+
+normalCounter = 0;
+return w.data;
+}
+
+// normales
+if(shuffledWords.length === 0 || currentIndex >= shuffledWords.length){
+shuffleWords();
+}
+
+let question = shuffledWords[currentIndex];
+currentIndex++;
+
+normalCounter++;
+
+return question;
+}
+
+// opciones
 function generateOptions(correctWord){
 
 let correct = reverseMode ? correctWord.eng : correctWord.correct;
@@ -247,27 +309,6 @@ options.push("...");
 return options.sort(()=>Math.random()-0.5);
 }
 
-function getNextQuestion(){
-if(words.length===0) return null;
-
-let pool=[];
-
-words.forEach(w=>{
-let isWrong=wrongWords.find(x=>x.data.eng===w.eng);
-let weight=isWrong ? 5 : 1;
-for(let i=0;i<weight;i++){
-pool.push(w);
-}
-});
-
-let next;
-do{
-next=pool[Math.floor(Math.random()*pool.length)];
-}while(lastQuestion && next.eng===lastQuestion.eng && pool.length>1);
-
-return next;
-}
-
 function loadQuestion(){
 cleanWrongWords();
 
@@ -283,7 +324,13 @@ let msg=document.getElementById("message");
 msg.style.display="none";
 
 currentQuestion=getNextQuestion();
-lastQuestion=currentQuestion;
+
+// contador visual
+let w = words.find(x=>x.eng===currentQuestion.eng);
+if(w){
+w.seen = (w.seen || 0) + 1;
+localStorage.setItem("words",JSON.stringify(words));
+}
 
 document.getElementById("word").innerText =
 reverseMode ? currentQuestion.correct : currentQuestion.eng;
@@ -319,10 +366,15 @@ msg.innerText="¡Bien!";
 msg.className="message correct-msg";
 msg.style.display="block";
 
+// suma aciertos
 if(item){
 item.hits++;
-if(item.hits>=5){
-wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+if(item.hits >= 5){
+wrongWords = wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+
+// 🔥 resetear ciclo falladas al cambiar lista
+shuffledWrong = [];
+wrongIndex = 0;
 }
 }
 
@@ -339,10 +391,15 @@ msg.innerText="Incorrecto";
 msg.className="message wrong-msg";
 msg.style.display="block";
 
+// reinicia o agrega
 if(item){
-item.hits=0;
+item.hits = 0;
 }else{
 wrongWords.push({data:currentQuestion,hits:0});
+
+// 🔥 resetear ciclo para incluir nueva palabra
+shuffledWrong = [];
+wrongIndex = 0;
 }
 }
 
@@ -351,13 +408,22 @@ localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 setTimeout(loadQuestion, 2000);
 }
 
+// guardar palabra
 function saveWord(){
 let eng=document.getElementById("eng").value.trim().toLowerCase();
 let esp=document.getElementById("esp").value.trim();
 
 if(!eng || !esp) return;
 
-words.push({eng,correct:esp});
+let exists = words.some(w => w.eng.toLowerCase() === eng);
+
+if(exists){
+alert("❌ Ya existe");
+return;
+}
+
+words.push({eng,correct:esp,seen:0});
+
 localStorage.setItem("words",JSON.stringify(words));
 
 document.getElementById("eng").value="";
@@ -365,6 +431,7 @@ document.getElementById("esp").value="";
 document.getElementById("eng").focus();
 
 closeModal("modal");
+shuffleWords();
 loadQuestion();
 }
 
@@ -380,7 +447,8 @@ c.innerHTML="";
 words.forEach((w,i)=>{
 c.innerHTML+=`
 <div class="admin-item">
-<b>${w.eng}</b> → ${w.correct}<br>
+<b>${i+1}. ${w.eng}</b> → ${w.correct}<br>
+Veces mostrada: ${w.seen || 0}<br>
 <button class="btn-edit" onclick="editWord(${i})">Editar</button>
 <button class="btn-delete" onclick="deleteWord(${i})">Eliminar</button>
 </div>`;
@@ -392,6 +460,16 @@ let newEng=prompt("Editar Inglés:",words[i].eng);
 let newEsp=prompt("Editar Español:",words[i].correct);
 
 if(newEng && newEsp){
+
+let exists = words.some((w,index) =>
+index !== i && w.eng.toLowerCase() === newEng.toLowerCase()
+);
+
+if(exists){
+alert("❌ Ya existe");
+return;
+}
+
 words[i].eng=newEng.toLowerCase();
 words[i].correct=newEsp;
 
@@ -411,10 +489,13 @@ wrongModal.style.display="flex";
 let c=document.getElementById("wrongList");
 c.innerHTML="";
 
-if(wrongWords.length===0){c.innerHTML="<i>No hay palabras falladas</i>"; return;}
+if(wrongWords.length===0){
+c.innerHTML="<i>No hay palabras falladas</i>";
+return;
+}
 
-wrongWords.forEach(w=>{
-c.innerHTML+=`<b>${w.data.eng}</b> (${w.hits}/5)<hr>`;
+wrongWords.forEach((w,i)=>{
+c.innerHTML+=`<b>${i+1}. ${w.data.eng}</b> (${w.hits}/5)<hr>`;
 });
 }
 
@@ -440,6 +521,9 @@ words=data.words||[];
 wrongWords=data.wrongWords||[];
 localStorage.setItem("words",JSON.stringify(words));
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
+shuffleWords();
+shuffledWrong = [];
+wrongIndex = 0;
 loadQuestion();
 };
 reader.readAsText(file);
@@ -448,8 +532,11 @@ reader.readAsText(file);
 function openModal(){modal.style.display="flex";}
 function closeModal(id){document.getElementById(id).style.display="none";}
 
+// iniciar
+shuffleWords();
 loadQuestion();
 </script>
+
 
 </body>
 </html>
