@@ -207,12 +207,14 @@ let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
 let currentQuestion=null;
 let locked=false;
 
-// 🔥 control random sin repetir
+// normales
 let shuffledWords = [];
 let currentIndex = 0;
 
-// 🔥 control falladas secuencial
+// falladas
+let shuffledWrong = [];
 let wrongIndex = 0;
+
 let normalCounter = 0;
 
 let reverseMode=false;
@@ -222,7 +224,7 @@ reverseMode=!reverseMode;
 loadQuestion();
 }
 
-// 🔥 limpiar falladas inválidas
+// limpiar falladas inválidas
 function cleanWrongWords(){
 wrongWords = wrongWords.filter(w =>
 words.some(real => real.eng === w.data.eng)
@@ -230,37 +232,44 @@ words.some(real => real.eng === w.data.eng)
 localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
 }
 
-// 🔥 crear orden random sin repetir
+// shuffle normales
 function shuffleWords(){
 shuffledWords = [...words].sort(()=>Math.random()-0.5);
 currentIndex = 0;
 }
 
-// 🔥 obtener siguiente pregunta
+// shuffle falladas
+function shuffleWrong(){
+shuffledWrong = [...wrongWords].sort(()=>Math.random()-0.5);
+wrongIndex = 0;
+}
+
+// siguiente pregunta
 function getNextQuestion(){
 if(words.length===0) return null;
 
-// cada 2 normales → 1 fallada (SECUENCIAL)
+// cada 2 normales → 1 fallada
 if(normalCounter >= 2 && wrongWords.length > 0){
 
-let w = wrongWords[wrongIndex];
-
-wrongIndex++;
-if(wrongIndex >= wrongWords.length){
-wrongIndex = 0;
+if(shuffledWrong.length === 0 || wrongIndex >= shuffledWrong.length){
+shuffleWrong();
 }
+
+let w = shuffledWrong[wrongIndex];
+wrongIndex++;
 
 normalCounter = 0;
 return w.data;
 }
 
-// 🔥 normales random sin repetir
+// normales random sin repetir
 if(shuffledWords.length === 0 || currentIndex >= shuffledWords.length){
 shuffleWords();
 }
 
 let question = shuffledWords[currentIndex];
 currentIndex++;
+
 normalCounter++;
 
 return question;
@@ -307,7 +316,7 @@ msg.style.display="none";
 
 currentQuestion=getNextQuestion();
 
-// 🔥 contador de aparición
+// contador visual
 let w = words.find(x=>x.eng===currentQuestion.eng);
 if(w){
 w.seen = (w.seen || 0) + 1;
@@ -348,10 +357,11 @@ msg.innerText="¡Bien!";
 msg.className="message correct-msg";
 msg.style.display="block";
 
+// ✅ suma aciertos
 if(item){
 item.hits++;
-if(item.hits>=5){
-wrongWords=wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+if(item.hits >= 5){
+wrongWords = wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
 }
 }
 
@@ -368,8 +378,9 @@ msg.innerText="Incorrecto";
 msg.className="message wrong-msg";
 msg.style.display="block";
 
+// ❌ reinicia contador
 if(item){
-item.hits=0;
+item.hits = 0;
 }else{
 wrongWords.push({data:currentQuestion,hits:0});
 }
@@ -380,7 +391,7 @@ localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 setTimeout(loadQuestion, 2000);
 }
 
-// 🚫 duplicados
+// guardar palabra
 function saveWord(){
 let eng=document.getElementById("eng").value.trim().toLowerCase();
 let esp=document.getElementById("esp").value.trim();
@@ -390,11 +401,10 @@ if(!eng || !esp) return;
 let exists = words.some(w => w.eng.toLowerCase() === eng);
 
 if(exists){
-alert("❌ Esta palabra ya existe");
+alert("❌ Ya existe");
 return;
 }
 
-// 🔥 añadir contador
 words.push({eng,correct:esp,seen:0});
 
 localStorage.setItem("words",JSON.stringify(words));
@@ -404,6 +414,7 @@ document.getElementById("esp").value="";
 document.getElementById("eng").focus();
 
 closeModal("modal");
+shuffleWords();
 loadQuestion();
 }
 
@@ -412,7 +423,6 @@ adminModal.style.display="flex";
 renderList();
 }
 
-// 🔥 mostrar contador
 function renderList(){
 let c=document.getElementById("wordList");
 c.innerHTML="";
@@ -439,7 +449,7 @@ index !== i && w.eng.toLowerCase() === newEng.toLowerCase()
 );
 
 if(exists){
-alert("❌ Ya existe esa palabra");
+alert("❌ Ya existe");
 return;
 }
 
@@ -462,10 +472,13 @@ wrongModal.style.display="flex";
 let c=document.getElementById("wrongList");
 c.innerHTML="";
 
-if(wrongWords.length===0){c.innerHTML="<i>No hay palabras falladas</i>"; return;}
+if(wrongWords.length===0){
+c.innerHTML="<i>No hay palabras falladas</i>";
+return;
+}
 
-wrongWords.forEach(w=>{
-c.innerHTML+=`<b>${w.data.eng}</b><hr>`;
+wrongWords.forEach((w,i)=>{
+c.innerHTML+=`<b>${i+1}. ${w.data.eng}</b> (${w.hits}/5)<hr>`;
 });
 }
 
@@ -492,6 +505,7 @@ wrongWords=data.wrongWords||[];
 localStorage.setItem("words",JSON.stringify(words));
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 shuffleWords();
+shuffleWrong();
 loadQuestion();
 };
 reader.readAsText(file);
@@ -502,6 +516,7 @@ function closeModal(id){document.getElementById(id).style.display="none";}
 
 // iniciar
 shuffleWords();
+shuffleWrong();
 loadQuestion();
 </script>
 
