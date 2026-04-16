@@ -6,18 +6,20 @@
 <title>Aprender PRO</title>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
 body{
     margin:0;
-    font-family:'Poppins',sans-serif;
-    background:#0f172a;
+    font-family:'Inter',sans-serif;
+    background:linear-gradient(135deg,#1e293b,#0f172a);
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
-    color:white;
+    color:#e2e8f0;
 }
 
+/* BOTONES */
 .add-btn{
     position:fixed;
     right:15px;
@@ -26,28 +28,37 @@ body{
     border:none;
     color:white;
     cursor:pointer;
+    box-shadow:0 4px 12px rgba(0,0,0,0.4);
+    transition:0.2s;
 }
+.add-btn:hover{transform:scale(1.1);}
+
 .btn-add{top:20px;background:#22c55e;}
 .btn-admin{top:80px;background:#334155;}
 .btn-wrong{top:140px;background:#ef4444;}
 .btn-sync{top:200px;background:#38bdf8;}
-.btn-mode{top:260px;background:#f59e0b;} /* NUEVO */
+.btn-mode{top:260px;background:#f59e0b;}
 
+/* CARD */
 .card{
     width:90%;
     max-width:420px;
-    background:#111827;
-    border-radius:20px;
-    padding:30px 20px;
+    background:#0f172a;
+    border-radius:18px;
+    padding:30px 25px;
     text-align:center;
+    box-shadow:0 10px 40px rgba(0,0,0,0.7);
+    border-top:4px solid #22c55e;
 }
 
+/* PALABRA */
 .word{
-    font-size:30px;
-    font-weight:600;
-    margin-bottom:20px;
+    font-size:32px;
+    font-weight:700;
+    margin-bottom:25px;
 }
 
+/* MENSAJES */
 .message{
     display:none;
     margin:10px;
@@ -56,6 +67,7 @@ body{
 .correct-msg{color:#22c55e;}
 .wrong-msg{color:#ef4444;}
 
+/* OPCIONES */
 .options{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -64,85 +76,78 @@ body{
 
 .btn{
     padding:14px;
-    border-radius:12px;
+    border-radius:10px;
     border:none;
-    background:#1f2937;
-    color:white;
+    background:#1e293b;
+    color:#e2e8f0;
     cursor:pointer;
     transition:0.2s;
 }
 
 .btn:hover{
-    background:#374151;
-    transform:scale(1.03);
+    background:#334155;
+    transform:scale(1.05);
 }
 
-.correct{
-    background:#166534 !important;
-    animation: flash 0.5s 2;
-}
+.correct{background:#16a34a !important;}
+.wrong{background:#dc2626 !important;}
 
-.wrong{
-    background:#991b1b !important;
-}
-
-@keyframes flash{
-    0%{opacity:1;}
-    50%{opacity:0.4;}
-    100%{opacity:1;}
-}
-
+/* MODALES */
 .modal{
     display:none;
     position:fixed;
     width:100%;height:100%;
-    background:rgba(0,0,0,0.7);
+    background:rgba(0,0,0,0.8);
     justify-content:center;
     align-items:center;
 }
 
 .modal-content{
-    background:#111827;
+    background:#0f172a;
     padding:20px;
     border-radius:12px;
     width:90%;
     max-width:320px;
+    border-top:3px solid #38bdf8;
 }
 
+/* INPUTS */
 .modal input{
     width:100%;
-    padding:10px;
-    margin:5px 0;
-    background:#1f2937;
+    padding:12px;
+    margin:6px 0;
+    background:#1e293b;
     border:none;
+    border-radius:8px;
     color:white;
 }
 
+/* BOTONES MODAL */
 .modal button{
     width:100%;
-    padding:10px;
-    margin-top:5px;
+    padding:12px;
+    margin-top:8px;
     background:#22c55e;
     border:none;
+    border-radius:8px;
     color:white;
+    font-weight:600;
+    cursor:pointer;
+}
+.modal button:hover{
+    background:#16a34a;
 }
 
 .close{cursor:pointer;float:right;}
 
-#wordList{
-    max-height:250px;
-    overflow-y:auto;
-}
+#wordList{max-height:250px;overflow-y:auto;}
 
 .admin-item{
-    background:#1f2937;
-    padding:8px;
-    margin-bottom:8px;
+    background:#1e293b;
+    padding:10px;
+    margin-bottom:10px;
     border-radius:8px;
 }
-
-.btn-delete{background:#ef4444;}
-.btn-edit{background:#38bdf8;}
 </style>
 </head>
 
@@ -152,8 +157,6 @@ body{
 <button class="add-btn btn-admin" onclick="openAdmin()">📋</button>
 <button class="add-btn btn-wrong" onclick="openWrong()">📉</button>
 <button class="add-btn btn-sync" onclick="openSync()">🔄</button>
-
-<!-- 🔁 NUEVO -->
 <button class="add-btn btn-mode" onclick="toggleMode()">🔁</button>
 
 <input type="file" id="fileInput" style="display:none">
@@ -164,7 +167,6 @@ body{
 <div id="options" class="options"></div>
 </div>
 
-<!-- MODALES (IGUAL) -->
 <div class="modal" id="modal">
 <div class="modal-content">
 <span class="close" onclick="closeModal('modal')">✖</span>
@@ -178,7 +180,7 @@ body{
 <div class="modal" id="adminModal">
 <div class="modal-content">
 <span class="close" onclick="closeModal('adminModal')">✖</span>
-<h3>Administrar</h3>
+<h3>Administrar (<span id="totalWords"></span>)</h3>
 <div id="wordList"></div>
 </div>
 </div>
@@ -207,15 +209,9 @@ let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
 let currentQuestion=null;
 let locked=false;
 
-// normales
-let shuffledWords = [];
-let currentIndex = 0;
-
-// falladas
-let shuffledWrong = [];
+let normalIndex = 0;
 let wrongIndex = 0;
-
-let normalCounter = 0;
+let cycleStep = 0;
 
 let reverseMode=false;
 
@@ -224,84 +220,60 @@ reverseMode=!reverseMode;
 loadQuestion();
 }
 
-// limpiar falladas inválidas
-function cleanWrongWords(){
-wrongWords = wrongWords.filter(w =>
-words.some(real => real.eng === w.data.eng)
-);
-localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+function isInWrong(word){
+return wrongWords.some(w => w.data.eng === word.eng);
 }
 
-// shuffle normales
-function shuffleWords(){
-shuffledWords = [...words].sort(()=>Math.random()-0.5);
-currentIndex = 0;
-}
-
-// shuffle falladas
-function shuffleWrong(){
-shuffledWrong = [...wrongWords].sort(()=>Math.random()-0.5);
-wrongIndex = 0;
-}
-
-// siguiente pregunta
 function getNextQuestion(){
-if(words.length===0) return null;
 
-// cada 2 normales → 1 fallada
-if(normalCounter >= 2 && wrongWords.length > 0){
+if(words.length === 0) return null;
 
-if(shuffledWrong.length === 0 || wrongIndex >= shuffledWrong.length){
-shuffleWrong();
-}
-
-let w = shuffledWrong[wrongIndex];
-wrongIndex++;
-
-normalCounter = 0;
+if(cycleStep === 2 && wrongWords.length > 0){
+let w = wrongWords[wrongIndex];
+wrongIndex = (wrongIndex + 1) % wrongWords.length;
+cycleStep = 0;
 return w.data;
 }
 
-// normales random sin repetir
-if(shuffledWords.length === 0 || currentIndex >= shuffledWords.length){
-shuffleWords();
+let attempts = 0;
+while(attempts < words.length){
+
+if(normalIndex >= words.length){
+normalIndex = 0;
 }
 
-let question = shuffledWords[currentIndex];
-currentIndex++;
+let q = words[normalIndex];
+normalIndex++;
+attempts++;
 
-normalCounter++;
-
-return question;
+if(!isInWrong(q)){
+cycleStep++;
+return q;
+}
 }
 
-// opciones
+cycleStep = 2;
+return getNextQuestion();
+}
+
 function generateOptions(correctWord){
 
 let correct = reverseMode ? correctWord.eng : correctWord.correct;
-
 let options=[correct];
 
 let others=words
 .filter(w=>w.eng!==correctWord.eng)
-.map(w=> reverseMode ? w.eng : w.correct)
-.sort(()=>Math.random()-0.5);
+.map(w=> reverseMode ? w.eng : w.correct);
 
-for(let i=0;i<3 && i<others.length;i++){
-if(!options.includes(others[i])){
-options.push(others[i]);
-}
-}
-
-while(options.length<4){
-options.push("...");
+while(options.length < 4 && others.length > 0){
+let rand = others.splice(Math.floor(Math.random()*others.length),1)[0];
+options.push(rand);
 }
 
 return options.sort(()=>Math.random()-0.5);
 }
 
 function loadQuestion(){
-cleanWrongWords();
 
 if(words.length===0){
 document.getElementById("word").innerText="Agrega palabras";
@@ -315,13 +287,6 @@ let msg=document.getElementById("message");
 msg.style.display="none";
 
 currentQuestion=getNextQuestion();
-
-// contador visual
-let w = words.find(x=>x.eng===currentQuestion.eng);
-if(w){
-w.seen = (w.seen || 0) + 1;
-localStorage.setItem("words",JSON.stringify(words));
-}
 
 document.getElementById("word").innerText =
 reverseMode ? currentQuestion.correct : currentQuestion.eng;
@@ -345,9 +310,9 @@ container.appendChild(btn);
 }
 
 function check(btn,correct){
+
 let msg=document.getElementById("message");
 let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
-let allButtons = document.querySelectorAll(".btn");
 
 let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
 
@@ -357,7 +322,6 @@ msg.innerText="¡Bien!";
 msg.className="message correct-msg";
 msg.style.display="block";
 
-// ✅ suma aciertos
 if(item){
 item.hits++;
 if(item.hits >= 5){
@@ -368,7 +332,7 @@ wrongWords = wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
 }else{
 btn.classList.add("wrong");
 
-allButtons.forEach(b=>{
+document.querySelectorAll(".btn").forEach(b=>{
 if(b.innerText === correctValue){
 b.classList.add("correct");
 }
@@ -378,7 +342,6 @@ msg.innerText="Incorrecto";
 msg.className="message wrong-msg";
 msg.style.display="block";
 
-// ❌ reinicia contador
 if(item){
 item.hits = 0;
 }else{
@@ -388,33 +351,27 @@ wrongWords.push({data:currentQuestion,hits:0});
 
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 
-setTimeout(loadQuestion, 2000);
+setTimeout(loadQuestion, 1500);
 }
 
-// guardar palabra
 function saveWord(){
 let eng=document.getElementById("eng").value.trim().toLowerCase();
 let esp=document.getElementById("esp").value.trim();
 
 if(!eng || !esp) return;
 
-let exists = words.some(w => w.eng.toLowerCase() === eng);
-
-if(exists){
+if(words.some(w => w.eng === eng)){
 alert("❌ Ya existe");
 return;
 }
 
-words.push({eng,correct:esp,seen:0});
-
+words.push({eng,correct:esp});
 localStorage.setItem("words",JSON.stringify(words));
 
 document.getElementById("eng").value="";
 document.getElementById("esp").value="";
-document.getElementById("eng").focus();
 
 closeModal("modal");
-shuffleWords();
 loadQuestion();
 }
 
@@ -426,39 +383,15 @@ renderList();
 function renderList(){
 let c=document.getElementById("wordList");
 c.innerHTML="";
+document.getElementById("totalWords").innerText = words.length;
 
 words.forEach((w,i)=>{
 c.innerHTML+=`
 <div class="admin-item">
-<b>${i+1}. ${w.eng}</b> → ${w.correct}<br>
-Veces mostrada: ${w.seen || 0}<br>
-<button class="btn-edit" onclick="editWord(${i})">Editar</button>
-<button class="btn-delete" onclick="deleteWord(${i})">Eliminar</button>
+<b>${w.eng}</b> → ${w.correct}<br>
+<button onclick="deleteWord(${i})">Eliminar</button>
 </div>`;
 });
-}
-
-function editWord(i){
-let newEng=prompt("Editar Inglés:",words[i].eng);
-let newEsp=prompt("Editar Español:",words[i].correct);
-
-if(newEng && newEsp){
-
-let exists = words.some((w,index) =>
-index !== i && w.eng.toLowerCase() === newEng.toLowerCase()
-);
-
-if(exists){
-alert("❌ Ya existe");
-return;
-}
-
-words[i].eng=newEng.toLowerCase();
-words[i].correct=newEsp;
-
-localStorage.setItem("words",JSON.stringify(words));
-renderList();
-}
 }
 
 function deleteWord(i){
@@ -472,13 +405,8 @@ wrongModal.style.display="flex";
 let c=document.getElementById("wrongList");
 c.innerHTML="";
 
-if(wrongWords.length===0){
-c.innerHTML="<i>No hay palabras falladas</i>";
-return;
-}
-
-wrongWords.forEach((w,i)=>{
-c.innerHTML+=`<b>${i+1}. ${w.data.eng}</b> (${w.hits}/5)<hr>`;
+wrongWords.forEach(w=>{
+c.innerHTML+=`<b>${w.data.eng}</b> (✔ ${w.hits})<hr>`;
 });
 }
 
@@ -486,17 +414,16 @@ function openSync(){syncModal.style.display="flex";}
 
 function exportData(){
 let data={words,wrongWords};
-let blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+let blob=new Blob([JSON.stringify(data)]);
 let a=document.createElement("a");
 a.href=URL.createObjectURL(blob);
-a.download="palabras.json";
+a.download="data.json";
 a.click();
 }
 
 function importData(){fileInput.click();}
 
 fileInput.onchange=e=>{
-let file=e.target.files[0];
 let reader=new FileReader();
 reader.onload=()=>{
 let data=JSON.parse(reader.result);
@@ -504,22 +431,16 @@ words=data.words||[];
 wrongWords=data.wrongWords||[];
 localStorage.setItem("words",JSON.stringify(words));
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
-shuffleWords();
-shuffleWrong();
 loadQuestion();
 };
-reader.readAsText(file);
+reader.readAsText(e.target.files[0]);
 };
 
 function openModal(){modal.style.display="flex";}
 function closeModal(id){document.getElementById(id).style.display="none";}
 
-// iniciar
-shuffleWords();
-shuffleWrong();
 loadQuestion();
 </script>
-
 
 </body>
 </html>
