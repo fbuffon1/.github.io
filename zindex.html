@@ -6,20 +6,18 @@
 <title>Aprender PRO</title>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
 body{
     margin:0;
-    font-family:'Inter',sans-serif;
-    background:linear-gradient(135deg,#1e293b,#0f172a);
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
-    color:#e2e8f0;
+    color:white;
 }
 
-/* BOTONES */
 .add-btn{
     position:fixed;
     right:15px;
@@ -28,37 +26,28 @@ body{
     border:none;
     color:white;
     cursor:pointer;
-    box-shadow:0 4px 12px rgba(0,0,0,0.4);
-    transition:0.2s;
 }
-.add-btn:hover{transform:scale(1.1);}
-
 .btn-add{top:20px;background:#22c55e;}
 .btn-admin{top:80px;background:#334155;}
 .btn-wrong{top:140px;background:#ef4444;}
 .btn-sync{top:200px;background:#38bdf8;}
 .btn-mode{top:260px;background:#f59e0b;}
 
-/* CARD */
 .card{
     width:90%;
     max-width:420px;
-    background:#0f172a;
-    border-radius:18px;
-    padding:30px 25px;
+    background:#111827;
+    border-radius:20px;
+    padding:30px 20px;
     text-align:center;
-    box-shadow:0 10px 40px rgba(0,0,0,0.7);
-    border-top:4px solid #22c55e;
 }
 
-/* PALABRA */
 .word{
-    font-size:32px;
-    font-weight:700;
-    margin-bottom:25px;
+    font-size:30px;
+    font-weight:600;
+    margin-bottom:20px;
 }
 
-/* MENSAJES */
 .message{
     display:none;
     margin:10px;
@@ -67,7 +56,6 @@ body{
 .correct-msg{color:#22c55e;}
 .wrong-msg{color:#ef4444;}
 
-/* OPCIONES */
 .options{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -76,76 +64,58 @@ body{
 
 .btn{
     padding:14px;
-    border-radius:10px;
+    border-radius:12px;
     border:none;
-    background:#1e293b;
-    color:#e2e8f0;
+    background:#1f2937;
+    color:white;
     cursor:pointer;
-    transition:0.2s;
 }
 
-.btn:hover{
-    background:#334155;
-    transform:scale(1.05);
-}
+.correct{background:#166534 !important;}
+.wrong{background:#991b1b !important;}
 
-.correct{background:#16a34a !important;}
-.wrong{background:#dc2626 !important;}
-
-/* MODALES */
 .modal{
     display:none;
     position:fixed;
     width:100%;height:100%;
-    background:rgba(0,0,0,0.8);
+    background:rgba(0,0,0,0.7);
     justify-content:center;
     align-items:center;
 }
 
 .modal-content{
-    background:#0f172a;
+    background:#111827;
     padding:20px;
     border-radius:12px;
     width:90%;
     max-width:320px;
-    border-top:3px solid #38bdf8;
 }
 
-/* INPUTS */
 .modal input{
     width:100%;
-    padding:12px;
-    margin:6px 0;
-    background:#1e293b;
+    padding:10px;
+    margin:5px 0;
+    background:#1f2937;
     border:none;
-    border-radius:8px;
     color:white;
 }
 
-/* BOTONES MODAL */
 .modal button{
     width:100%;
-    padding:12px;
-    margin-top:8px;
+    padding:10px;
+    margin-top:5px;
     background:#22c55e;
     border:none;
-    border-radius:8px;
     color:white;
-    font-weight:600;
-    cursor:pointer;
-}
-.modal button:hover{
-    background:#16a34a;
 }
 
 .close{cursor:pointer;float:right;}
 
 #wordList{max-height:250px;overflow-y:auto;}
-
 .admin-item{
-    background:#1e293b;
-    padding:10px;
-    margin-bottom:10px;
+    background:#1f2937;
+    padding:8px;
+    margin-bottom:8px;
     border-radius:8px;
 }
 </style>
@@ -220,6 +190,7 @@ reverseMode=!reverseMode;
 loadQuestion();
 }
 
+// 🔥 validar si está en falladas
 function isInWrong(word){
 return wrongWords.some(w => w.data.eng === word.eng);
 }
@@ -228,6 +199,7 @@ function getNextQuestion(){
 
 if(words.length === 0) return null;
 
+// 👉 FALLADAS
 if(cycleStep === 2 && wrongWords.length > 0){
 let w = wrongWords[wrongIndex];
 wrongIndex = (wrongIndex + 1) % wrongWords.length;
@@ -235,6 +207,7 @@ cycleStep = 0;
 return w.data;
 }
 
+// 👉 NORMALES (omitimos si está en falladas)
 let attempts = 0;
 while(attempts < words.length){
 
@@ -252,6 +225,7 @@ return q;
 }
 }
 
+// fallback si todas están en falladas
 cycleStep = 2;
 return getNextQuestion();
 }
