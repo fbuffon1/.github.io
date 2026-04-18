@@ -1,177 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aprender PRO</title>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
-body{
-    margin:0;
-    font-family:'Poppins',sans-serif;
-    background:#0f172a;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    color:white;
-}
-
-.add-btn{
-    position:fixed;
-    right:15px;
-    width:50px;height:50px;
-    border-radius:50%;
-    border:none;
-    color:white;
-    cursor:pointer;
-}
-.btn-add{top:20px;background:#22c55e;}
-.btn-admin{top:80px;background:#334155;}
-.btn-wrong{top:140px;background:#ef4444;}
-.btn-sync{top:200px;background:#38bdf8;}
-.btn-mode{top:260px;background:#f59e0b;}
-
-.card{
-    width:90%;
-    max-width:420px;
-    background:#111827;
-    border-radius:20px;
-    padding:30px 20px;
-    text-align:center;
-}
-
-.word{
-    font-size:30px;
-    font-weight:600;
-    margin-bottom:20px;
-}
-
-.message{
-    display:none;
-    margin:10px;
-    font-weight:600;
-}
-.correct-msg{color:#22c55e;}
-.wrong-msg{color:#ef4444;}
-
-.options{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-}
-
-.btn{
-    padding:14px;
-    border-radius:12px;
-    border:none;
-    background:#1f2937;
-    color:white;
-    cursor:pointer;
-}
-
-.correct{background:#166534 !important;}
-.wrong{background:#991b1b !important;}
-
-.modal{
-    display:none;
-    position:fixed;
-    width:100%;height:100%;
-    background:rgba(0,0,0,0.7);
-    justify-content:center;
-    align-items:center;
-}
-
-.modal-content{
-    background:#111827;
-    padding:20px;
-    border-radius:12px;
-    width:90%;
-    max-width:320px;
-}
-
-.modal input{
-    width:100%;
-    padding:10px;
-    margin:5px 0;
-    background:#1f2937;
-    border:none;
-    color:white;
-}
-
-.modal button{
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    background:#22c55e;
-    border:none;
-    color:white;
-}
-
-.close{cursor:pointer;float:right;}
-
-#wordList{max-height:250px;overflow-y:auto;}
-.admin-item{
-    background:#1f2937;
-    padding:8px;
-    margin-bottom:8px;
-    border-radius:8px;
-}
-</style>
-</head>
-
-<body>
-
-<button class="add-btn btn-add" onclick="openModal()">+</button>
-<button class="add-btn btn-admin" onclick="openAdmin()">📋</button>
-<button class="add-btn btn-wrong" onclick="openWrong()">📉</button>
-<button class="add-btn btn-sync" onclick="openSync()">🔄</button>
-<button class="add-btn btn-mode" onclick="toggleMode()">🔁</button>
-
-<input type="file" id="fileInput" style="display:none">
-
-<div class="card">
-<div id="word" class="word"></div>
-<div id="message" class="message"></div>
-<div id="options" class="options"></div>
-</div>
-
-<div class="modal" id="modal">
-<div class="modal-content">
-<span class="close" onclick="closeModal('modal')">✖</span>
-<h3>Nueva palabra</h3>
-<input id="eng" placeholder="Inglés">
-<input id="esp" placeholder="Español">
-<button onclick="saveWord()">Guardar</button>
-</div>
-</div>
-
-<div class="modal" id="adminModal">
-<div class="modal-content">
-<span class="close" onclick="closeModal('adminModal')">✖</span>
-<h3>Administrar (<span id="totalWords"></span>)</h3>
-<div id="wordList"></div>
-</div>
-</div>
-
-<div class="modal" id="wrongModal">
-<div class="modal-content">
-<span class="close" onclick="closeModal('wrongModal')">✖</span>
-<h3>Falladas</h3>
-<div id="wrongList"></div>
-</div>
-</div>
-
-<div class="modal" id="syncModal">
-<div class="modal-content">
-<span class="close" onclick="closeModal('syncModal')">✖</span>
-<h3>Sincronizar</h3>
-<button onclick="exportData()">Exportar</button>
-<button onclick="importData()">Importar</button>
-</div>
-</div>
-
 <script>
 let words = JSON.parse(localStorage.getItem("words")) || [];
 let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
@@ -190,16 +16,22 @@ reverseMode=!reverseMode;
 loadQuestion();
 }
 
-// 🔥 validar si está en falladas
-function isInWrong(word){
-return wrongWords.some(w => w.data.eng === word.eng);
+// 🔥 ID único
+function generateId(){
+return Date.now() + Math.random();
 }
 
+// 🔥 validar si está en falladas (CORREGIDO)
+function isInWrong(word){
+return wrongWords.some(w => w.data.id === word.id);
+}
+
+// 🔥 CORE FIX
 function getNextQuestion(){
 
 if(words.length === 0) return null;
 
-// 👉 FALLADAS
+// 👉 2 normales + 1 fallada
 if(cycleStep === 2 && wrongWords.length > 0){
 let w = wrongWords[wrongIndex];
 wrongIndex = (wrongIndex + 1) % wrongWords.length;
@@ -207,8 +39,9 @@ cycleStep = 0;
 return w.data;
 }
 
-// 👉 NORMALES (omitimos si está en falladas)
+// 👉 NORMALES (saltando falladas)
 let attempts = 0;
+
 while(attempts < words.length){
 
 if(normalIndex >= words.length){
@@ -219,15 +52,23 @@ let q = words[normalIndex];
 normalIndex++;
 attempts++;
 
-if(!isInWrong(q)){
+// ❌ si está en falladas → la saltamos
+if(isInWrong(q)){
+continue;
+}
+
+// ✔ válida
 cycleStep++;
 return q;
 }
+
+// 👉 si TODAS están en falladas → solo mostramos falladas
+if(wrongWords.length > 0){
+cycleStep = 0;
+return wrongWords[wrongIndex++ % wrongWords.length].data;
 }
 
-// fallback si todas están en falladas
-cycleStep = 2;
-return getNextQuestion();
+return null;
 }
 
 function generateOptions(correctWord){
@@ -236,7 +77,7 @@ let correct = reverseMode ? correctWord.eng : correctWord.correct;
 let options=[correct];
 
 let others=words
-.filter(w=>w.eng!==correctWord.eng)
+.filter(w=>w.id!==correctWord.id)
 .map(w=> reverseMode ? w.eng : w.correct);
 
 while(options.length < 4 && others.length > 0){
@@ -286,7 +127,7 @@ container.appendChild(btn);
 function check(btn,correct){
 
 let msg=document.getElementById("message");
-let item=wrongWords.find(w=>w.data.eng===currentQuestion.eng);
+let item=wrongWords.find(w=>w.data.id===currentQuestion.id);
 
 let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
 
@@ -299,7 +140,7 @@ msg.style.display="block";
 if(item){
 item.hits++;
 if(item.hits >= 5){
-wrongWords = wrongWords.filter(w=>w.data.eng!==currentQuestion.eng);
+wrongWords = wrongWords.filter(w=>w.data.id!==currentQuestion.id);
 }
 }
 
@@ -339,7 +180,7 @@ alert("❌ Ya existe");
 return;
 }
 
-words.push({eng,correct:esp});
+words.push({id:generateId(), eng,correct:esp});
 localStorage.setItem("words",JSON.stringify(words));
 
 document.getElementById("eng").value="";
@@ -401,8 +242,14 @@ fileInput.onchange=e=>{
 let reader=new FileReader();
 reader.onload=()=>{
 let data=JSON.parse(reader.result);
-words=data.words||[];
-wrongWords=data.wrongWords||[];
+
+// 🔥 asegurar IDs
+words=(data.words||[]).map(w=>({...w, id:w.id || generateId()}));
+wrongWords=(data.wrongWords||[]).map(w=>({
+...w,
+data:{...w.data, id:w.data.id || generateId()}
+}));
+
 localStorage.setItem("words",JSON.stringify(words));
 localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
 loadQuestion();
@@ -415,6 +262,3 @@ function closeModal(id){document.getElementById(id).style.display="none";}
 
 loadQuestion();
 </script>
-
-</body>
-</html>
