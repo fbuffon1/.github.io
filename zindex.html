@@ -328,7 +328,7 @@ function loadQuestion(){
     if(!currentQuestion) return;
 
     document.getElementById("word").innerText = reverseMode ? currentQuestion.correct : currentQuestion.eng;
-    document.getElementById("modeIndicator").innerText = reverseMode ? "Traduce al Inglés" : "Traduce al Español";
+    document.getElementById("modeIndicator").innerText = reverseMode ? "Traduce al Inglés" : "";
 
     let container = document.getElementById("options");
     container.innerHTML = "";
