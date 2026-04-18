@@ -1,264 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aprender PRO - Corregido</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+body{
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#0f172a;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    color:white;
+}
+
+.add-btn{
+    position:fixed;
+    right:15px;
+    width:50px;height:50px;
+    border-radius:50%;
+    border:none;
+    color:white;
+    cursor:pointer;
+    z-index: 10;
+}
+.btn-add{top:20px;background:#22c55e;}
+.btn-admin{top:80px;background:#334155;}
+.btn-wrong{top:140px;background:#ef4444;}
+.btn-sync{top:200px;background:#38bdf8;}
+.btn-mode{top:260px;background:#f59e0b;}
+
+.card{
+    width:90%;
+    max-width:420px;
+    background:#111827;
+    border-radius:20px;
+    padding:30px 20px;
+    text-align:center;
+}
+
+.word{
+    font-size:30px;
+    font-weight:600;
+    margin-bottom:20px;
+}
+
+.message{
+    display:none;
+    margin:10px;
+    font-weight:600;
+}
+.correct-msg{color:#22c55e;}
+.wrong-msg{color:#ef4444;}
+
+.options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.btn{
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    background:#1f2937;
+    color:white;
+    cursor:pointer;
+    transition: 0.2s;
+}
+
+.correct{background:#166534 !important;}
+.wrong{background:#991b1b !important;}
+
+.modal{
+    display:none;
+    position:fixed;
+    width:100%;height:100%;
+    background:rgba(0,0,0,0.7);
+    justify-content:center;
+    align-items:center;
+    z-index: 20;
+}
+
+.modal-content{
+    background:#111827;
+    padding:20px;
+    border-radius:12px;
+    width:90%;
+    max-width:320px;
+}
+
+.modal input{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    background:#1f2937;
+    border:none;
+    color:white;
+    box-sizing: border-box;
+}
+
+.modal button{
+    width:100%;
+    padding:10px;
+    margin-top:5px;
+    background:#22c55e;
+    border:none;
+    color:white;
+    cursor:pointer;
+}
+
+.close{cursor:pointer;float:right;}
+
+#wordList, #wrongList{max-height:250px;overflow-y:auto; margin-top:10px;}
+.admin-item{
+    background:#1f2937;
+    padding:8px;
+    margin-bottom:8px;
+    border-radius:8px;
+    font-size: 0.9em;
+}
+</style>
+</head>
+
+<body>
+
+<button class="add-btn btn-add" onclick="openModal()">+</button>
+<button class="add-btn btn-admin" onclick="openAdmin()">📋</button>
+<button class="add-btn btn-wrong" onclick="openWrong()">📉</button>
+<button class="add-btn btn-sync" onclick="openSync()">🔄</button>
+<button class="add-btn btn-mode" onclick="toggleMode()">🔁</button>
+
+<input type="file" id="fileInput" style="display:none">
+
+<div class="card">
+<div id="word" class="word"></div>
+<div id="message" class="message"></div>
+<div id="options" class="options"></div>
+</div>
+
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('modal')">✖</span>
+        <h3>Nueva palabra</h3>
+        <input id="eng" placeholder="Inglés">
+        <input id="esp" placeholder="Español">
+        <button onclick="saveWord()">Guardar</button>
+    </div>
+</div>
+
+<div class="modal" id="adminModal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('adminModal')">✖</span>
+        <h3>Administrar (<span id="totalWords"></span>)</h3>
+        <div id="wordList"></div>
+    </div>
+</div>
+
+<div class="modal" id="wrongModal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('wrongModal')">✖</span>
+        <h3>Palabras Falladas</h3>
+        <div id="wrongList"></div>
+    </div>
+</div>
+
+<div class="modal" id="syncModal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('syncModal')">✖</span>
+        <h3>Sincronizar</h3>
+        <button onclick="exportData()" style="margin-bottom:10px;">Exportar JSON</button>
+        <button onclick="importData()" style="background:#38bdf8;">Importar JSON</button>
+    </div>
+</div>
+
 <script>
 let words = JSON.parse(localStorage.getItem("words")) || [];
 let wrongWords = JSON.parse(localStorage.getItem("wrongWords")) || [];
 
-let currentQuestion=null;
-let locked=false;
+let currentQuestion = null;
+let locked = false;
 
 let normalIndex = 0;
 let wrongIndex = 0;
-let cycleStep = 0;
+let cycleStep = 0; // 0, 1 = Normales | 2 = Falladas
 
-let reverseMode=false;
+let reverseMode = false;
 
 function toggleMode(){
-reverseMode=!reverseMode;
-loadQuestion();
+    reverseMode = !reverseMode;
+    loadQuestion();
 }
 
-// 🔥 ID único
-function generateId(){
-return Date.now() + Math.random();
-}
-
-// 🔥 validar si está en falladas (CORREGIDO)
 function isInWrong(word){
-return wrongWords.some(w => w.data.id === word.id);
+    return wrongWords.some(w => w.data.eng === word.eng);
 }
 
-// 🔥 CORE FIX
 function getNextQuestion(){
+    if(words.length === 0) return null;
 
-if(words.length === 0) return null;
+    // Ajuste de seguridad para el índice de falladas
+    if(wrongIndex >= wrongWords.length) wrongIndex = 0;
 
-// 👉 2 normales + 1 fallada
-if(cycleStep === 2 && wrongWords.length > 0){
-let w = wrongWords[wrongIndex];
-wrongIndex = (wrongIndex + 1) % wrongWords.length;
-cycleStep = 0;
-return w.data;
-}
+    // TURNO DE FALLADAS
+    if(cycleStep === 2 && wrongWords.length > 0){
+        let w = wrongWords[wrongIndex];
+        wrongIndex = (wrongIndex + 1) % wrongWords.length;
+        cycleStep = 0;
+        return w.data;
+    }
 
-// 👉 NORMALES (saltando falladas)
-let attempts = 0;
+    // TURNO DE NORMALES (Omitir si está en falladas)
+    let attempts = 0;
+    let backupCandidate = null;
 
-while(attempts < words.length){
+    while(attempts < words.length){
+        if(normalIndex >= words.length) normalIndex = 0;
+        
+        let q = words[normalIndex];
+        normalIndex++;
+        attempts++;
 
-if(normalIndex >= words.length){
-normalIndex = 0;
-}
+        if(!isInWrong(q)){
+            // FIX: Si la palabra es la misma que acabamos de responder (porque acaba de salir de Falladas)
+            // intentamos saltarla para no repetirla dos veces seguidas.
+            if(currentQuestion && q.eng === currentQuestion.eng && words.length > 1){
+                if(!backupCandidate) backupCandidate = q; 
+                continue;
+            }
+            cycleStep++;
+            return q;
+        }
+    }
 
-let q = words[normalIndex];
-normalIndex++;
-attempts++;
+    // Si solo queda una palabra disponible y es la repetida
+    if(backupCandidate){
+        cycleStep++;
+        return backupCandidate;
+    }
 
-// ❌ si está en falladas → la saltamos
-if(isInWrong(q)){
-continue;
-}
+    // Si no hay normales disponibles (todas están en falladas), forzamos ciclo de falladas
+    if(wrongWords.length > 0){
+        cycleStep = 2;
+        return getNextQuestion();
+    }
 
-// ✔ válida
-cycleStep++;
-return q;
-}
-
-// 👉 si TODAS están en falladas → solo mostramos falladas
-if(wrongWords.length > 0){
-cycleStep = 0;
-return wrongWords[wrongIndex++ % wrongWords.length].data;
-}
-
-return null;
+    return null;
 }
 
 function generateOptions(correctWord){
+    let correct = reverseMode ? correctWord.eng : correctWord.correct;
+    let options = [correct];
+    let others = words
+        .filter(w => w.eng !== correctWord.eng)
+        .map(w => reverseMode ? w.eng : w.correct);
 
-let correct = reverseMode ? correctWord.eng : correctWord.correct;
-let options=[correct];
-
-let others=words
-.filter(w=>w.id!==correctWord.id)
-.map(w=> reverseMode ? w.eng : w.correct);
-
-while(options.length < 4 && others.length > 0){
-let rand = others.splice(Math.floor(Math.random()*others.length),1)[0];
-options.push(rand);
-}
-
-return options.sort(()=>Math.random()-0.5);
+    while(options.length < 4 && others.length > 0){
+        let rand = others.splice(Math.floor(Math.random() * others.length), 1)[0];
+        options.push(rand);
+    }
+    return options.sort(() => Math.random() - 0.5);
 }
 
 function loadQuestion(){
+    if(words.length === 0){
+        document.getElementById("word").innerText = "Agrega palabras";
+        document.getElementById("options").innerHTML = "";
+        return;
+    }
 
-if(words.length===0){
-document.getElementById("word").innerText="Agrega palabras";
-document.getElementById("options").innerHTML="";
-return;
+    locked = false;
+    document.getElementById("message").style.display = "none";
+
+    let next = getNextQuestion();
+    if(!next) {
+        document.getElementById("word").innerText = "Agrega más palabras";
+        return;
+    }
+    currentQuestion = next;
+
+    document.getElementById("word").innerText = reverseMode ? currentQuestion.correct : currentQuestion.eng;
+
+    let container = document.getElementById("options");
+    container.innerHTML = "";
+    let shuffled = generateOptions(currentQuestion);
+
+    shuffled.forEach(opt => {
+        let btn = document.createElement("button");
+        btn.className = "btn";
+        btn.innerText = opt;
+        let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
+
+        btn.onclick = () => {
+            if(locked) return; 
+            locked = true; 
+            check(btn, opt === correctValue);
+        };
+        container.appendChild(btn);
+    });
 }
 
-locked=false;
+function check(btn, isCorrect){
+    let msg = document.getElementById("message");
+    let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
+    let itemIndex = wrongWords.findIndex(w => w.data.eng === currentQuestion.eng);
 
-let msg=document.getElementById("message");
-msg.style.display="none";
+    if(isCorrect){
+        btn.classList.add("correct");
+        msg.innerText = "¡Correcto!";
+        msg.className = "message correct-msg";
+        
+        if(itemIndex !== -1){
+            wrongWords[itemIndex].hits++;
+            if(wrongWords[itemIndex].hits >= 5){
+                wrongWords.splice(itemIndex, 1);
+            }
+        }
+    } else {
+        btn.classList.add("wrong");
+        document.querySelectorAll(".btn").forEach(b => {
+            if(b.innerText === correctValue) b.classList.add("correct");
+        });
+        msg.innerText = "Error";
+        msg.className = "message wrong-msg";
 
-currentQuestion=getNextQuestion();
+        if(itemIndex !== -1){
+            wrongWords[itemIndex].hits = 0;
+        } else {
+            wrongWords.push({data: currentQuestion, hits: 0});
+        }
+    }
 
-document.getElementById("word").innerText =
-reverseMode ? currentQuestion.correct : currentQuestion.eng;
-
-let container=document.getElementById("options");
-container.innerHTML="";
-
-let shuffled=generateOptions(currentQuestion);
-
-shuffled.forEach(opt=>{
-let btn=document.createElement("button");
-btn.className="btn";
-btn.innerText=opt;
-
-let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
-
-btn.onclick=()=>{if(locked)return; locked=true; check(btn,opt===correctValue);};
-
-container.appendChild(btn);
-});
-}
-
-function check(btn,correct){
-
-let msg=document.getElementById("message");
-let item=wrongWords.find(w=>w.data.id===currentQuestion.id);
-
-let correctValue = reverseMode ? currentQuestion.eng : currentQuestion.correct;
-
-if(correct){
-btn.classList.add("correct");
-msg.innerText="¡Bien!";
-msg.className="message correct-msg";
-msg.style.display="block";
-
-if(item){
-item.hits++;
-if(item.hits >= 5){
-wrongWords = wrongWords.filter(w=>w.data.id!==currentQuestion.id);
-}
-}
-
-}else{
-btn.classList.add("wrong");
-
-document.querySelectorAll(".btn").forEach(b=>{
-if(b.innerText === correctValue){
-b.classList.add("correct");
-}
-});
-
-msg.innerText="Incorrecto";
-msg.className="message wrong-msg";
-msg.style.display="block";
-
-if(item){
-item.hits = 0;
-}else{
-wrongWords.push({data:currentQuestion,hits:0});
-}
-}
-
-localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
-
-setTimeout(loadQuestion, 1500);
+    msg.style.display = "block";
+    localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+    setTimeout(loadQuestion, 1200);
 }
 
 function saveWord(){
-let eng=document.getElementById("eng").value.trim().toLowerCase();
-let esp=document.getElementById("esp").value.trim();
+    let eng = document.getElementById("eng").value.trim().toLowerCase();
+    let esp = document.getElementById("esp").value.trim();
+    if(!eng || !esp) return;
 
-if(!eng || !esp) return;
+    if(words.some(w => w.eng === eng)){
+        alert("Esta palabra ya existe");
+        return;
+    }
 
-if(words.some(w => w.eng === eng)){
-alert("❌ Ya existe");
-return;
-}
-
-words.push({id:generateId(), eng,correct:esp});
-localStorage.setItem("words",JSON.stringify(words));
-
-document.getElementById("eng").value="";
-document.getElementById("esp").value="";
-
-closeModal("modal");
-loadQuestion();
+    words.push({eng, correct: esp});
+    localStorage.setItem("words", JSON.stringify(words));
+    document.getElementById("eng").value = "";
+    document.getElementById("esp").value = "";
+    closeModal("modal");
+    loadQuestion();
 }
 
 function openAdmin(){
-adminModal.style.display="flex";
-renderList();
+    document.getElementById("adminModal").style.display = "flex";
+    renderList();
 }
 
 function renderList(){
-let c=document.getElementById("wordList");
-c.innerHTML="";
-document.getElementById("totalWords").innerText = words.length;
+    let c = document.getElementById("wordList");
+    c.innerHTML = "";
+    document.getElementById("totalWords").innerText = words.length;
 
-words.forEach((w,i)=>{
-c.innerHTML+=`
-<div class="admin-item">
-<b>${w.eng}</b> → ${w.correct}<br>
-<button onclick="deleteWord(${i})">Eliminar</button>
-</div>`;
-});
+    words.forEach((w, i) => {
+        let status = isInWrong(w) ? " <small style='color:#ef4444'>(En Falladas)</small>" : "";
+        c.innerHTML += `
+            <div class="admin-item">
+                <b>${w.eng}</b> → ${w.correct} ${status}<br>
+                <button onclick="deleteWord(${i})" style="background:#991b1b; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; margin-top:5px;">Eliminar</button>
+            </div>`;
+    });
 }
 
 function deleteWord(i){
-words.splice(i,1);
-localStorage.setItem("words",JSON.stringify(words));
-renderList();
+    let wordToDelete = words[i].eng;
+    words.splice(i, 1);
+    wrongWords = wrongWords.filter(w => w.data.eng !== wordToDelete);
+    localStorage.setItem("words", JSON.stringify(words));
+    localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+    renderList();
+    loadQuestion();
 }
 
 function openWrong(){
-wrongModal.style.display="flex";
-let c=document.getElementById("wrongList");
-c.innerHTML="";
-
-wrongWords.forEach(w=>{
-c.innerHTML+=`<b>${w.data.eng}</b> (✔ ${w.hits})<hr>`;
-});
+    document.getElementById("wrongModal").style.display = "flex";
+    let c = document.getElementById("wrongList");
+    c.innerHTML = "";
+    if(wrongWords.length === 0) c.innerHTML = "No hay palabras falladas";
+    
+    wrongWords.forEach(w => {
+        c.innerHTML += `<div class="admin-item"><b>${w.data.eng}</b> - Aciertos: ${w.hits}/5</div>`;
+    });
 }
 
-function openSync(){syncModal.style.display="flex";}
+function openSync(){ document.getElementById("syncModal").style.display = "flex"; }
 
 function exportData(){
-let data={words,wrongWords};
-let blob=new Blob([JSON.stringify(data)]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="data.json";
-a.click();
+    let data = {words, wrongWords};
+    let blob = new Blob([JSON.stringify(data)], {type: "application/json"});
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "aprender_pro_data.json";
+    a.click();
 }
 
-function importData(){fileInput.click();}
+function importData(){ document.getElementById("fileInput").click(); }
 
-fileInput.onchange=e=>{
-let reader=new FileReader();
-reader.onload=()=>{
-let data=JSON.parse(reader.result);
-
-// 🔥 asegurar IDs
-words=(data.words||[]).map(w=>({...w, id:w.id || generateId()}));
-wrongWords=(data.wrongWords||[]).map(w=>({
-...w,
-data:{...w.data, id:w.data.id || generateId()}
-}));
-
-localStorage.setItem("words",JSON.stringify(words));
-localStorage.setItem("wrongWords",JSON.stringify(wrongWords));
-loadQuestion();
-};
-reader.readAsText(e.target.files[0]);
+document.getElementById("fileInput").onchange = e => {
+    let reader = new FileReader();
+    reader.onload = () => {
+        try {
+            let data = JSON.parse(reader.result);
+            words = data.words || [];
+            wrongWords = data.wrongWords || [];
+            localStorage.setItem("words", JSON.stringify(words));
+            localStorage.setItem("wrongWords", JSON.stringify(wrongWords));
+            alert("Datos importados con éxito");
+            loadQuestion();
+        } catch(err) { alert("Error al importar el archivo"); }
+    };
+    reader.readAsText(e.target.files[0]);
 };
 
-function openModal(){modal.style.display="flex";}
-function closeModal(id){document.getElementById(id).style.display="none";}
+function openModal(){ document.getElementById("modal").style.display = "flex"; }
+function closeModal(id){ document.getElementById(id).style.display = "none"; }
 
+// Inicializar
 loadQuestion();
 </script>
+
+</body>
+</html>
