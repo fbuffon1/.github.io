@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Lectura de Tráfico</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(160deg, #dde9f7 0%, #e8eefb 35%, #edf1fa 60%, #dce6f5 100%);
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      border-radius: 28px;
+      padding: 48px 40px 44px;
+      width: 400px;
+      text-align: center;
+      box-shadow:
+        0 4px 24px rgba(160, 180, 220, 0.18),
+        0 1.5px 6px rgba(180, 200, 240, 0.10);
+    }
+
+    .titulo {
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #8a9dbf;
+      margin-bottom: 28px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 16px 22px;
+      border: 1.5px solid rgba(180, 200, 240, 0.35);
+      border-radius: 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      color: #3a4a6b;
+      background: rgba(255, 255, 255, 0.82);
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+      -moz-appearance: textfield;
+      box-shadow: 0 2px 10px rgba(160, 185, 230, 0.10);
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    input[type="number"]::placeholder { color: #b0bdd4; }
+
+    input[type="number"]:focus {
+      border-color: rgba(130, 165, 225, 0.6);
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 0 0 4px rgba(140, 175, 235, 0.13), 0 2px 10px rgba(160, 185, 230, 0.12);
+    }
+
+    .divider {
+      margin: 32px auto;
+      width: 36px;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(160, 185, 230, 0.45), transparent);
+      border-radius: 2px;
+    }
+
+    .resultado-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .resultado {
+      font-family: 'DM Mono', monospace;
+      font-size: 42px;
+      font-weight: 300;
+      color: #4a6fa5;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      transition: opacity 0.2s;
+    }
+
+    .unidad-label {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #a8b8d4;
+      font-weight: 400;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <p class="titulo">Lectura de tráfico</p>
+
+    <div class="input-wrap">
+      <input
+        type="number"
+        id="bytes"
+        placeholder="Ingresa bytes..."
+        oninput="convertir()"
+      >
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="resultado-wrap">
+      <div class="resultado" id="resultado">0 B</div>
+      <div class="unidad-label"> </div>
+    </div>
+  </div>
+
+  <script>
+    function convertir() {
+      let bytes = parseFloat(document.getElementById("bytes").value);
+      const el = document.getElementById("resultado");
+
+      if (isNaN(bytes) || bytes === 0) {
+        el.textContent = "0 B";
+        return;
+      }
+
+      const unidades = ["B", "KB", "MB", "GB", "TB"];
+      let i = 0;
+      while (bytes >= 1000 && i < unidades.length - 1) {
+        bytes /= 1000;
+        i++;
+      }
+
+      el.style.opacity = "0";
+      setTimeout(() => {
+        el.textContent = bytes.toFixed(2) + " " + unidades[i];
+        el.style.opacity = "1";
+      }, 80);
+    }
+  </script>
+
+</body>
+</html>
