@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Terminal</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    background:#d5d9de;
+    font-family:Consolas, monospace;
+
+    min-height:100vh;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    padding:20px;
+}
+
+.controls{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:center;
+    gap:15px;
+
+    width:fit-content;
+
+    margin:0 auto 20px auto;
+
+    background:white;
+
+    padding:15px 20px;
+
+    border-radius:8px;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.controls label{
+    font-size:14px;
+    font-weight:bold;
+}
+
+.controls span{
+    min-width:60px;
+    text-align:center;
+}
+
+.controls input[type="range"]{
+    width:160px;
+}
+
+.info{
+    color:#666;
+    font-size:13px;
+}
+
+.container{
+
+    width:1200px;
+    height:550px;
+
+    margin:0 auto;
+
+    background:#18252f;
+
+    border-radius:4px;
+
+    overflow:hidden;
+
+    box-shadow:
+        8px 0 0 #35658f,
+        0 10px 30px rgba(0,0,0,.25);
+}
+
+.header{
+    height:42px;
+
+    display:flex;
+    align-items:center;
+
+    padding-left:15px;
+}
+
+.dot{
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    margin-right:8px;
+}
+
+.red{
+    background:#ff5f56;
+}
+
+.yellow{
+    background:#ffbd2e;
+}
+
+.green{
+    background:#27c93f;
+}
+
+.editor{
+
+    width:100%;
+    height:calc(100% - 42px);
+
+    border:none;
+    outline:none;
+    resize:none;
+
+    background:#18252f;
+
+    color:#f5f5f5;
+
+    padding:20px;
+
+    font-family:Consolas, monospace;
+
+    font-size:18px;
+
+    line-height:1.5;
+
+    overflow:auto;
+}
+
+.editor[readonly]{
+    cursor:default;
+}
+
+/* Scroll moderno */
+
+.editor::-webkit-scrollbar{
+    width:14px;
+}
+
+.editor::-webkit-scrollbar-track{
+    background:#15212a;
+}
+
+.editor::-webkit-scrollbar-thumb{
+
+    background:linear-gradient(
+        180deg,
+        #4c7ca6,
+        #2f587d
+    );
+
+    border-radius:20px;
+
+    border:2px solid #15212a;
+}
+
+.editor::-webkit-scrollbar-thumb:hover{
+
+    background:linear-gradient(
+        180deg,
+        #6e9ac1,
+        #46729b
+    );
+}
+
+.editor::-webkit-scrollbar-corner{
+    background:#15212a;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="controls">
+
+    <label>Fuente</label>
+
+    <input
+        type="range"
+        id="fontSlider"
+        min="10"
+        max="40"
+        value="18">
+
+    <span id="fontValue">18px</span>
+
+    <label>Ancho</label>
+
+    <input
+        type="range"
+        id="widthSlider"
+        min="700"
+        max="1800"
+        value="1200">
+
+    <span id="widthValue">1200</span>
+
+    <label>Alto</label>
+
+    <input
+        type="range"
+        id="heightSlider"
+        min="300"
+        max="1000"
+        value="550">
+
+    <span id="heightValue">550</span>
+
+    <div class="info">
+        Pase el mouse sobre la terminal para editar
+    </div>
+
+</div>
+
+<div class="container" id="terminal">
+
+    <div class="header">
+
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+
+    </div>
+
+<textarea
+id="editor"
+class="editor"
+readonly><PE_ARGENTINA>dis ip interface description | i Loo
+
+Interface               IP Address/Mask      Phy   Prot   Description
+
+Loop0                   300.50.50.180/32    U     U(s)
+
+<PE_ARGENTINA>
+</textarea>
+
+</div>
+
+<script>
+
+const terminal = document.getElementById("terminal");
+const editor = document.getElementById("editor");
+
+/* Editar solamente al pasar el mouse */
+
+terminal.addEventListener("mouseenter", () => {
+    editor.removeAttribute("readonly");
+});
+
+terminal.addEventListener("mouseleave", () => {
+    editor.setAttribute("readonly", true);
+});
+
+/* Fuente */
+
+const fontSlider = document.getElementById("fontSlider");
+const fontValue = document.getElementById("fontValue");
+
+fontSlider.addEventListener("input", function(){
+
+    editor.style.fontSize = this.value + "px";
+
+    fontValue.textContent = this.value + "px";
+
+});
+
+/* Ancho */
+
+const widthSlider = document.getElementById("widthSlider");
+const widthValue = document.getElementById("widthValue");
+
+widthSlider.addEventListener("input", function(){
+
+    terminal.style.width = this.value + "px";
+
+    widthValue.textContent = this.value + "px";
+
+});
+
+/* Alto */
+
+const heightSlider = document.getElementById("heightSlider");
+const heightValue = document.getElementById("heightValue");
+
+heightSlider.addEventListener("input", function(){
+
+    terminal.style.height = this.value + "px";
+
+    heightValue.textContent = this.value + "px";
+
+});
+
+</script>
+
+</body>
+</html>
