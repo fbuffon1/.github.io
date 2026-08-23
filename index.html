@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calendario de Tareas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', -apple-system, sans-serif; background: #fbfbfc; }
+  .kt-heading, .kt-daylabel, button, input { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+  .kt-layout { display: flex; gap: 20px; align-items: flex-start; }
+  .kt-sidebar { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+  .kt-board-wrap { flex: 1; min-width: 0; overflow-x: auto; }
+  .kt-board { display: flex; gap: 16px; padding-bottom: 8px; }
+  @media (max-width: 860px) {
+    .kt-layout { flex-direction: column; }
+    .kt-sidebar { width: 100%; position: static !important; flex-direction: row; flex-wrap: wrap; }
+    .kt-sidebar > * { flex: 1 1 220px; }
+  }
+  @media (max-width: 520px) {
+    .kt-sidebar { flex-direction: column; }
+    .kt-sidebar > * { flex: 1 1 auto; }
+    .kt-day-col { min-width: 84vw !important; max-width: 84vw !important; scroll-snap-align: start; }
+    .kt-board { scroll-snap-type: x mandatory; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ---------- Iconos (SVG simples, sin dependencias) ---------- */
+const Icon = ({ children, size = 16, color = "currentColor", style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>{children}</svg>
+);
+const Plus = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+const ClockIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+const Bell = (p) => <Icon {...p}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Icon>;
+const X = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Icon>;
+const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
+const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
+const CalendarIcon = (p) => <Icon {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Icon>;
+const Trash2 = (p) => <Icon {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></Icon>;
+const GripVertical = (p) => <Icon {...p}><circle cx="9" cy="6" r="1.2" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="18" r="1.2" fill="currentColor"/><circle cx="15" cy="6" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="18" r="1.2" fill="currentColor"/></Icon>;
+const Check = (p) => <Icon {...p}><polyline points="20 6 9 17 4 12"/></Icon>;
+const Settings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></Icon>;
+const Mail = (p) => <Icon {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></Icon>;
+const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></Icon>;
+const Github = (p) => <Icon {...p}><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></Icon>;
+
+/* ---------- Config ---------- */
+const STATUS = {
+  backlog: { key: "backlog", label: "Backlog (Abierto)", color: "#6b7280", soft: "#f1f2f4" },
+  progreso: { key: "progreso", label: "En Progreso", color: "#7c6fe8", soft: "#efedfd" },
+  revision: { key: "revision", label: "En Revisión", color: "#14b8a6", soft: "#e6faf7" },
+  completado: { key: "completado", label: "Completado", color: "#22b573", soft: "#e9f9f1" },
+};
+const STATUS_ORDER = ["backlog", "progreso", "revision", "completado"];
+const DAY_COLORS = ["#e5484d", "#f5a524", "#2f80ed", "#2fb572", "#8e5cf0"];
+const DAY_NAMES = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function pad(n) { return String(n).padStart(2, "0"); }
+function isoDate(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function todayISO() { return isoDate(new Date()); }
+function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function formatDayLabel(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const dayName = d.toLocaleDateString("es-ES", { weekday: "long" });
+  const month = d.toLocaleDateString("es-ES", { month: "long" });
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  return `${cap(dayName)}, ${d.getDate()} ${cap(month)} ${d.getFullYear()}`;
+}
+function defaultDays() {
+  const out = []; const base = new Date();
+  for (let i = 0; i < 5; i++) { const d = new Date(base); d.setDate(base.getDate() + i); out.push(isoDate(d)); }
+  return out;
+}
+
+/* ---------- Config local (guardada en el navegador) ---------- */
+const CFG_KEY = "kt-github-config-v1";
+function loadConfig() {
+  try { const raw = localStorage.getItem(CFG_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+function saveConfig(cfg) {
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+}
+
+/* ---------- GitHub Contents API ---------- */
+function b64EncodeUnicode(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUnicode(str) {
+  return decodeURIComponent(escape(atob(str)));
+}
+async function githubGet(cfg) {
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}?ref=${cfg.branch || "main"}&_=${Date.now()}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `token ${cfg.token}`, Accept: "application/vnd.github+json" },
+  });
+  if (res.status === 404) return { sha: null, data: null };
+  if (!res.ok) throw new Error(`GitHub GET falló (${res.status})`);
+  const json = await res.json();
+  const data = JSON.parse(b64DecodeUnicode(json.content));
+  return { sha: json.sha, data };
+}
+async function githubPut(cfg, data, sha) {
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
+  const body = {
+    message: "chore: actualizar tasks.json desde la app",
+    content: b64EncodeUnicode(JSON.stringify(data, null, 2)),
+    branch: cfg.branch || "main",
+  };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { Authorization: `token ${cfg.token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`GitHub PUT falló (${res.status}): ${t}`); }
+  const json = await res.json();
+  return json.content.sha;
+}
+
+/* ---------- Estilos reutilizables ---------- */
+const navBtnStyle = { border: "none", background: "#f4f4f6", width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#3a3a3e" };
+const labelStyle = { fontSize: 11.5, fontWeight: 700, color: "#9a9aa0", marginBottom: 5, display: "block", textTransform: "uppercase", letterSpacing: .3 };
+const inputStyle = { width: "100%", border: "1px solid #e8e8ec", borderRadius: 9, padding: "9px 10px", fontSize: 13.5, marginBottom: 14, fontFamily: "inherit", color: "#161618", boxSizing: "border-box" };
+
+/* ---------- Mini calendario ---------- */
+function MiniCalendar({ viewDate, setViewDate, days, onToggleDay }) {
+  const year = viewDate.getFullYear(), month = viewDate.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = firstOfMonth.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const cells = [];
+  for (let i = startOffset - 1; i >= 0; i--) cells.push({ n: daysInPrevMonth - i, other: true, iso: null });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ n: d, other: false, iso: isoDate(new Date(year, month, d)) });
+  while (cells.length % 7 !== 0) { const n = cells.length - (startOffset + daysInMonth) + 1; cells.push({ n, other: true, iso: null }); }
+  const today = todayISO();
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #ececef" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: "#161618", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <CalendarIcon size={16} color="#fff" />
+        </div>
+        <span className="kt-heading" style={{ fontWeight: 800, fontSize: 17, color: "#161618" }}>Calendario</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <button onClick={() => setViewDate(new Date(year, month - 1, 1))} style={navBtnStyle}><ChevronLeft size={16} /></button>
+        <span className="kt-heading" style={{ fontWeight: 700, fontSize: 15, color: "#161618" }}>{MONTH_NAMES[month]} {year}</span>
+        <button onClick={() => setViewDate(new Date(year, month + 1, 1))} style={navBtnStyle}><ChevronRight size={16} /></button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
+        {DAY_NAMES.map((d) => <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#c6432c", padding: "4px 0" }}>{d}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
+        {cells.map((c, i) => {
+          const isToday = c.iso === today, isSelected = c.iso && days.includes(c.iso);
+          return (
+            <button key={i} disabled={c.other} onClick={() => c.iso && onToggleDay(c.iso)} style={{
+              aspectRatio: "1", border: "none", borderRadius: 8,
+              background: isToday ? "#e5484d" : isSelected ? "#ffe9e6" : "transparent",
+              color: c.other ? "#d6d6da" : isToday ? "#fff" : isSelected ? "#c6432c" : "#3a3a3e",
+              fontWeight: isToday || isSelected ? 700 : 500, fontSize: 13, cursor: c.other ? "default" : "pointer",
+            }}>{c.n}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Formulario agregar tarea ---------- */
+function AddTaskForm({ onAdd, onCancel, accent }) {
+  const [title, setTitle] = useState("");
+  const [time, setTime] = useState("09:00");
+  const inputRef = useRef(null);
+  useEffect(() => { inputRef.current && inputRef.current.focus(); }, []);
+  const submit = () => { if (!title.trim()) return; onAdd({ title: title.trim(), time }); };
+  return (
+    <div style={{ background: "#fff", border: `1.5px solid ${accent}`, borderRadius: 12, padding: 10, marginBottom: 8, boxShadow: "0 2px 8px rgba(0,0,0,.06)" }}>
+      <input ref={inputRef} value={title} onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") onCancel(); }}
+        placeholder="Nombre de la tarea"
+        style={{ width: "100%", border: "none", outline: "none", fontSize: 13.5, fontWeight: 600, color: "#161618", marginBottom: 8, background: "transparent", fontFamily: "inherit" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <ClockIcon size={14} color="#9a9aa0" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+          style={{ border: "1px solid #e8e8ec", borderRadius: 6, padding: "3px 6px", fontSize: 12.5, color: "#3a3a3e", fontFamily: "inherit" }} />
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={submit} style={{ flex: 1, background: "#161618", color: "#fff", border: "none", borderRadius: 8, padding: "6px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Guardar</button>
+        <button onClick={onCancel} style={{ background: "#f4f4f6", color: "#5a5a60", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tarjeta de tarea ---------- */
+function TaskCard({ task, onDragStart, onOpen }) {
+  return (
+    <div draggable onDragStart={(e) => onDragStart(e, task.id)} onClick={() => onOpen(task)}
+      style={{ background: "#fff", border: "1px solid #edeef1", borderRadius: 12, padding: "10px 12px", marginBottom: 8, cursor: "grab", boxShadow: "0 1px 2px rgba(20,20,25,.04)", display: "flex", gap: 8, alignItems: "flex-start" }}>
+      <GripVertical size={14} color="#d6d6da" style={{ marginTop: 2, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1c1c1f", lineHeight: 1.35, wordBreak: "break-word" }}>{task.title}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, color: "#9a9aa0" }}>
+          <ClockIcon size={12} />
+          <span style={{ fontSize: 11.5, fontWeight: 500 }}>{task.time}</span>
+          {task.status !== "completado" && <Bell size={11} color="#e5a53c" style={{ marginLeft: 2 }} title="Recibirás recordatorios por correo" />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Modal editar tarea ---------- */
+function TaskModal({ task, onClose, onSave, onDelete }) {
+  const [title, setTitle] = useState(task.title);
+  const [time, setTime] = useState(task.time);
+  const [status, setStatus] = useState(task.status);
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(20,20,24,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: 380, maxWidth: "100%", padding: 22, boxShadow: "0 20px 60px rgba(0,0,0,.25)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span className="kt-heading" style={{ fontWeight: 800, fontSize: 15, color: "#161618" }}>Editar tarea</span>
+          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: "#9a9aa0" }}><X size={18} /></button>
+        </div>
+        <label style={labelStyle}>Nombre</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} />
+        <label style={labelStyle}>Hora</label>
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={inputStyle} />
+        <label style={labelStyle}>Estado</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          {STATUS_ORDER.map((s) => (
+            <button key={s} onClick={() => setStatus(s)} style={{
+              border: status === s ? `1.5px solid ${STATUS[s].color}` : "1.5px solid #e8e8ec",
+              background: status === s ? STATUS[s].soft : "#fff",
+              color: status === s ? STATUS[s].color : "#5a5a60",
+              borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}>{STATUS[s].label}</button>
+          ))}
+        </div>
+        <p style={{ fontSize: 11.5, color: "#9a9aa0", marginTop: -6, marginBottom: 16, lineHeight: 1.5 }}>
+          {status === "backlog" && "Te llegará un correo cada 5 minutos hasta que la muevas."}
+          {status === "progreso" && "Te llegará un correo cada 1 hora hasta que la muevas."}
+          {status === "revision" && "Te llegará un correo cada 2 horas hasta que la muevas."}
+          {status === "completado" && "No se enviará ningún correo para esta tarea."}
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => onSave({ ...task, title: title.trim() || task.title, time, status, lastSent: task.status !== status ? null : task.lastSent })}
+            style={{ flex: 1, background: "#161618", color: "#fff", border: "none", borderRadius: 10, padding: "10px 0", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Check size={14} /> Guardar cambios
+          </button>
+          <button onClick={() => onDelete(task.id)} style={{ background: "#fdecec", color: "#c0392b", border: "none", borderRadius: 10, padding: "10px 12px", cursor: "pointer" }}><Trash2 size={15} /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Modal de ajustes (GitHub + correo) ---------- */
+function SettingsModal({ cfg, recipientEmail, onClose, onSave, syncStatus }) {
+  const [owner, setOwner] = useState(cfg.owner || "");
+  const [repo, setRepo] = useState(cfg.repo || "");
+  const [branch, setBranch] = useState(cfg.branch || "main");
+  const [path, setPath] = useState(cfg.path || "tasks.json");
+  const [token, setToken] = useState(cfg.token || "");
+  const [email, setEmail] = useState(recipientEmail || "");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(20,20,24,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 16 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, width: 440, maxWidth: "100%", padding: 24, boxShadow: "0 20px 60px rgba(0,0,0,.28)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span className="kt-heading" style={{ fontWeight: 800, fontSize: 17, color: "#161618" }}>Ajustes</span>
+          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: "#9a9aa0" }}><X size={19} /></button>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 8px" }}>
+          <Mail size={14} color="#9a9aa0" />
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#9a9aa0", textTransform: "uppercase", letterSpacing: .3 }}>Correo destino</span>
+        </div>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@gmail.com" style={inputStyle} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "6px 0 8px" }}>
+          <Github size={14} color="#9a9aa0" />
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#9a9aa0", textTransform: "uppercase", letterSpacing: .3 }}>Repositorio (base de datos)</span>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Usuario/Org</label>
+            <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="tu-usuario" style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Repositorio</label>
+            <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="mi-calendario" style={inputStyle} />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Rama</label>
+            <input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="main" style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Archivo</label>
+            <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="tasks.json" style={inputStyle} />
+          </div>
+        </div>
+        <label style={labelStyle}>Token de acceso (Personal Access Token)</label>
+        <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxx" style={inputStyle} />
+
+        <div style={{ background: "#f7f7f9", borderRadius: 12, padding: 12, marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <Info size={15} color="#8a8a90" style={{ marginTop: 1, flexShrink: 0 }} />
+          <p style={{ fontSize: 11.5, color: "#75757b", margin: 0, lineHeight: 1.55 }}>
+            Este token solo se guarda en tu propio navegador (nunca sale de tu computadora salvo
+            para hablar con GitHub). Crea uno en GitHub → Settings → Developer settings →
+            Personal access tokens → Fine-grained, con permiso "Contents: Read and write"
+            limitado solo a este repositorio. Los recordatorios por correo los envía el robot de
+            GitHub Actions usando tu contraseña de aplicación de Gmail, configurada como Secret en
+            el repositorio (ver README).
+          </p>
+        </div>
+
+        {syncStatus && (
+          <div style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 14, color: syncStatus === "error" ? "#c0392b" : syncStatus === "guardando" ? "#b6720f" : "#1a9b5c" }}>
+            {syncStatus === "guardando" && "Guardando en GitHub…"}
+            {syncStatus === "guardado" && "✓ Sincronizado con GitHub"}
+            {syncStatus === "error" && "No se pudo sincronizar. Revisa tus datos."}
+          </div>
+        )}
+
+        <button onClick={() => onSave({ owner, repo, branch, path, token }, email)}
+          style={{ width: "100%", background: "#161618", color: "#fff", border: "none", borderRadius: 10, padding: "11px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <Check size={15} /> Guardar y sincronizar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Columna de día ---------- */
+function DayColumn({ iso, index, tasks, onAddTask, onOpenTask, onDrop, onDragStart, onRemoveDay }) {
+  const [addingStatus, setAddingStatus] = useState(null);
+  const [dragOverStatus, setDragOverStatus] = useState(null);
+  const color = DAY_COLORS[index % DAY_COLORS.length];
+  const label = formatDayLabel(iso);
+
+  return (
+    <div className="kt-day-col" style={{ minWidth: 260, maxWidth: 260, display: "flex", flexDirection: "column", background: "#f7f7f9", borderRadius: 16, overflow: "hidden", flexShrink: 0, border: "1px solid #ececef", maxHeight: "calc(100vh - 160px)" }}>
+      <div style={{ background: color, color: "#fff", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span className="kt-daylabel" style={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.3 }}>{label}</span>
+        <button onClick={() => onRemoveDay(iso)} style={{ border: "none", background: "rgba(255,255,255,.22)", color: "#fff", width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><X size={13} /></button>
+      </div>
+      <div style={{ padding: 12, overflowY: "auto", flex: 1 }}>
+        {STATUS_ORDER.map((statusKey) => {
+          const meta = STATUS[statusKey];
+          const list = tasks.filter((t) => t.status === statusKey);
+          const isOver = dragOverStatus === statusKey;
+          return (
+            <div key={statusKey}
+              onDragOver={(e) => { e.preventDefault(); setDragOverStatus(statusKey); }}
+              onDragLeave={() => setDragOverStatus((s) => (s === statusKey ? null : s))}
+              onDrop={(e) => { e.preventDefault(); setDragOverStatus(null); onDrop(e, iso, statusKey); }}
+              style={{ marginBottom: 14, borderRadius: 10, outline: isOver ? `2px dashed ${meta.color}` : "none", outlineOffset: 2, minHeight: 8 }}>
+              <div style={{ background: meta.color, color: "#fff", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700 }}>{meta.label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {list.length > 0 && <span style={{ background: "rgba(255,255,255,.28)", borderRadius: 5, padding: "0 6px", fontSize: 11, fontWeight: 800, minWidth: 16, textAlign: "center" }}>{list.length}</span>}
+                  <button onClick={() => setAddingStatus(statusKey)} style={{ border: "none", background: "rgba(255,255,255,.25)", color: "#fff", width: 18, height: 18, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Plus size={12} /></button>
+                </div>
+              </div>
+              {addingStatus === statusKey && (
+                <AddTaskForm accent={meta.color} onCancel={() => setAddingStatus(null)} onAdd={(data) => { onAddTask(iso, statusKey, data); setAddingStatus(null); }} />
+              )}
+              {list.map((t) => <TaskCard key={t.id} task={t} onDragStart={onDragStart} onOpen={onOpenTask} />)}
+              {list.length === 0 && addingStatus !== statusKey && <div style={{ fontSize: 11.5, color: "#c2c2c8", padding: "2px 2px 4px" }}>Sin tareas</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- App principal ---------- */
+function App() {
+  const [days, setDays] = useState(defaultDays());
+  const [tasks, setTasks] = useState([]);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [viewDate, setViewDate] = useState(new Date());
+  const [openTask, setOpenTask] = useState(null);
+  const [addingDay, setAddingDay] = useState(false);
+  const [newDayValue, setNewDayValue] = useState(todayISO());
+  const [showSettings, setShowSettings] = useState(false);
+  const [cfg, setCfg] = useState({ owner: "", repo: "", branch: "main", path: "tasks.json", token: "" });
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const shaRef = useRef(null);
+  const syncTimer = useRef(null);
+
+  // Cargar configuración local + datos de GitHub al iniciar
+  useEffect(() => {
+    const saved = loadConfig();
+    if (saved) setCfg(saved);
+    (async () => {
+      if (saved && saved.owner && saved.repo && saved.token) {
+        try {
+          setSyncStatus("guardando");
+          const { sha, data } = await githubGet(saved);
+          shaRef.current = sha;
+          if (data) {
+            if (data.days) setDays(data.days);
+            if (data.tasks) setTasks(data.tasks);
+            if (data.settings && data.settings.recipientEmail) setRecipientEmail(data.settings.recipientEmail);
+          }
+          setSyncStatus("guardado");
+        } catch (e) {
+          setSyncStatus("error");
+        }
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const configured = cfg.owner && cfg.repo && cfg.token;
+
+  // Sincronizar a GitHub cuando cambian días/tareas/correo (con pequeño debounce)
+  useEffect(() => {
+    if (!loaded || !configured) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(async () => {
+      try {
+        setSyncStatus("guardando");
+        const payload = { settings: { recipientEmail }, days, tasks };
+        const newSha = await githubPut(cfg, payload, shaRef.current);
+        shaRef.current = newSha;
+        setSyncStatus("guardado");
+      } catch (e) {
+        setSyncStatus("error");
+      }
+    }, 900);
+    return () => clearTimeout(syncTimer.current);
+  }, [days, tasks, recipientEmail, loaded, configured]);
+
+  const toggleDay = (iso) => setDays((prev) => prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort());
+  const removeDay = (iso) => { setDays((prev) => prev.filter((d) => d !== iso)); setTasks((prev) => prev.filter((t) => t.day !== iso)); };
+  const addTask = (day, status, data) => setTasks((prev) => [...prev, { id: uid(), day, status, title: data.title, time: data.time, lastSent: null }]);
+  const saveTask = (updated) => { setTasks((prev) => prev.map((t) => t.id === updated.id ? updated : t)); setOpenTask(null); };
+  const deleteTask = (id) => { setTasks((prev) => prev.filter((t) => t.id !== id)); setOpenTask(null); };
+  const handleDragStart = (e, taskId) => { e.dataTransfer.setData("text/plain", taskId); e.dataTransfer.effectAllowed = "move"; };
+  const handleDrop = (e, day, status) => {
+    const taskId = e.dataTransfer.getData("text/plain");
+    if (!taskId) return;
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, day, status, lastSent: t.status !== status ? null : t.lastSent } : t));
+  };
+  const confirmAddDay = () => { if (newDayValue) toggleDay(newDayValue); setAddingDay(false); };
+  const handleSaveSettings = (nextCfg, email) => {
+    setCfg(nextCfg); saveConfig(nextCfg); setRecipientEmail(email); shaRef.current = null; setShowSettings(false);
+  };
+
+  const sortedDays = [...days].sort();
+
+  return (
+    <div style={{ background: "#fbfbfc", minHeight: "100vh", padding: 20 }}>
+      <div className="kt-layout">
+        <div className="kt-sidebar" style={{ position: "sticky", top: 20 }}>
+          <MiniCalendar viewDate={viewDate} setViewDate={setViewDate} days={days} onToggleDay={toggleDay} />
+
+          <div style={{ background: "#fff", border: "1px solid #ececef", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#9a9aa0", marginBottom: 10, textTransform: "uppercase", letterSpacing: .4 }}>Estados</div>
+            {STATUS_ORDER.map((s) => (
+              <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12.5, color: "#3a3a3e", fontWeight: 600 }}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: STATUS[s].color, flexShrink: 0 }} />
+                {STATUS[s].label}
+              </div>
+            ))}
+          </div>
+
+          {!addingDay ? (
+            <button onClick={() => setAddingDay(true)} style={{ background: "#e5484d", color: "#fff", border: "none", borderRadius: 12, padding: "13px 0", fontWeight: 700, fontSize: 13.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Plus size={16} /> Agregar día
+            </button>
+          ) : (
+            <div style={{ background: "#fff", border: "1px solid #ececef", borderRadius: 14, padding: 12 }}>
+              <label style={labelStyle}>Selecciona una fecha</label>
+              <input type="date" value={newDayValue} onChange={(e) => setNewDayValue(e.target.value)} style={{ ...inputStyle, marginBottom: 10 }} />
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={confirmAddDay} style={{ flex: 1, background: "#161618", color: "#fff", border: "none", borderRadius: 8, padding: "8px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Agregar</button>
+                <button onClick={() => setAddingDay(false)} style={{ background: "#f4f4f6", color: "#5a5a60", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
+          <button onClick={() => setShowSettings(true)} style={{ width: "100%", background: "#161618", color: "#fff", border: "none", borderRadius: 12, padding: "12px 0", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, position: "relative" }}>
+            <Settings size={16} /> Ajustes
+            {!configured && <span style={{ position: "absolute", top: -4, right: -4, width: 11, height: 11, borderRadius: "50%", background: "#e5484d", border: "2px solid #fff" }} />}
+          </button>
+
+          {configured && (
+            <div style={{ fontSize: 11, fontWeight: 700, textAlign: "center", color: syncStatus === "error" ? "#c0392b" : syncStatus === "guardando" ? "#b6720f" : "#1a9b5c" }}>
+              {syncStatus === "guardando" && "Guardando…"}
+              {syncStatus === "guardado" && "✓ Sincronizado"}
+              {syncStatus === "error" && "Error de sincronización"}
+            </div>
+          )}
+        </div>
+
+        <div className="kt-board-wrap">
+          {sortedDays.length === 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 300, color: "#b0b0b6", gap: 8 }}>
+              <CalendarIcon size={30} />
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Agrega un día desde el calendario o con el botón "Agregar día"</span>
+            </div>
+          ) : (
+            <div className="kt-board">
+              {sortedDays.map((iso, i) => (
+                <DayColumn key={iso} iso={iso} index={i} tasks={tasks.filter((t) => t.day === iso)}
+                  onAddTask={addTask} onOpenTask={setOpenTask} onDrop={handleDrop} onDragStart={handleDragStart} onRemoveDay={removeDay} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {openTask && <TaskModal task={openTask} onClose={() => setOpenTask(null)} onSave={saveTask} onDelete={deleteTask} />}
+      {showSettings && <SettingsModal cfg={cfg} recipientEmail={recipientEmail} syncStatus={syncStatus} onClose={() => setShowSettings(false)} onSave={handleSaveSettings} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
