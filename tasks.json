@@ -5,5 +5,15 @@
   "days": [
     "2026-09-05"
   ],
-  "tasks": []
+  "tasks": [
+    {
+      "id": "cg51naq19uqmtofbc46",
+      "day": "2026-09-05",
+      "endDay": null,
+      "status": "backlog",
+      "title": "aa",
+      "time": "09:00",
+      "lastSent": null
+    }
+  ]
 }
