@@ -5,15 +5,5 @@
   "days": [
     "2026-09-05"
   ],
-  "tasks": [
-    {
-      "id": "3hex7s74qvdmtofcrem",
-      "day": "2026-09-05",
-      "endDay": null,
-      "status": "completado",
-      "title": "qweqwe",
-      "time": "09:00",
-      "lastSent": null
-    }
-  ]
+  "tasks": []
 }
